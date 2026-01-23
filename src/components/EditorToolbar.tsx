@@ -1,11 +1,15 @@
 import { Copy, Trash2, Play, FileCode, ChevronDown } from 'lucide-react';
 import { Language } from './CodeEditor';
 import { toast } from 'sonner';
+import { SettingsPanel } from './SettingsPanel';
+import { EditorSettings } from '@/hooks/useEditorSettings';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 
 interface EditorToolbarProps {
@@ -14,16 +18,36 @@ interface EditorToolbarProps {
   onCopy: () => void;
   onClear: () => void;
   onRun: () => void;
+  settings: EditorSettings;
+  onSettingsChange: (settings: EditorSettings) => void;
 }
 
-const languages: { value: Language; label: string; icon: string }[] = [
-  { value: 'javascript', label: 'JavaScript', icon: 'JS' },
-  { value: 'typescript', label: 'TypeScript', icon: 'TS' },
-  { value: 'python', label: 'Python', icon: 'PY' },
-  { value: 'html', label: 'HTML', icon: '<>' },
-  { value: 'css', label: 'CSS', icon: '#' },
-  { value: 'json', label: 'JSON', icon: '{}' },
+const languages: { value: Language; label: string; icon: string; category: string }[] = [
+  // Web
+  { value: 'javascript', label: 'JavaScript', icon: 'JS', category: 'Web' },
+  { value: 'typescript', label: 'TypeScript', icon: 'TS', category: 'Web' },
+  { value: 'html', label: 'HTML', icon: '<>', category: 'Web' },
+  { value: 'css', label: 'CSS', icon: '#', category: 'Web' },
+  { value: 'php', label: 'PHP', icon: 'PHP', category: 'Web' },
+  // Languages
+  { value: 'python', label: 'Python', icon: 'PY', category: 'Languages' },
+  { value: 'java', label: 'Java', icon: 'JV', category: 'Languages' },
+  { value: 'cpp', label: 'C++', icon: 'C+', category: 'Languages' },
+  { value: 'rust', label: 'Rust', icon: 'RS', category: 'Languages' },
+  // Data & Config
+  { value: 'json', label: 'JSON', icon: '{}', category: 'Data' },
+  { value: 'xml', label: 'XML', icon: 'XM', category: 'Data' },
+  { value: 'sql', label: 'SQL', icon: 'SQ', category: 'Data' },
+  { value: 'markdown', label: 'Markdown', icon: 'MD', category: 'Data' },
 ];
+
+const groupedLanguages = languages.reduce((acc, lang) => {
+  if (!acc[lang.category]) {
+    acc[lang.category] = [];
+  }
+  acc[lang.category].push(lang);
+  return acc;
+}, {} as Record<string, typeof languages>);
 
 export const EditorToolbar = ({
   language,
@@ -31,6 +55,8 @@ export const EditorToolbar = ({
   onCopy,
   onClear,
   onRun,
+  settings,
+  onSettingsChange,
 }: EditorToolbarProps) => {
   const currentLang = languages.find((l) => l.value === language) || languages[0];
 
@@ -58,24 +84,33 @@ export const EditorToolbar = ({
           <span className="text-sm font-medium">{currentLang.label}</span>
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-[160px]">
-          {languages.map((lang) => (
-            <DropdownMenuItem
-              key={lang.value}
-              onClick={() => onLanguageChange(lang.value)}
-              className={`flex items-center gap-3 ${language === lang.value ? 'bg-primary/10 text-primary' : ''}`}
-            >
-              <span className="w-6 text-xs font-mono font-bold text-primary/80">
-                {lang.icon}
-              </span>
-              <span>{lang.label}</span>
-            </DropdownMenuItem>
+        <DropdownMenuContent align="start" className="min-w-[180px] max-h-[300px] overflow-auto">
+          {Object.entries(groupedLanguages).map(([category, langs], idx) => (
+            <div key={category}>
+              {idx > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                {category}
+              </DropdownMenuLabel>
+              {langs.map((lang) => (
+                <DropdownMenuItem
+                  key={lang.value}
+                  onClick={() => onLanguageChange(lang.value)}
+                  className={`flex items-center gap-3 ${language === lang.value ? 'bg-primary/10 text-primary' : ''}`}
+                >
+                  <span className="w-6 text-xs font-mono font-bold text-primary/80">
+                    {lang.icon}
+                  </span>
+                  <span>{lang.label}</span>
+                </DropdownMenuItem>
+              ))}
+            </div>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2">
+        <SettingsPanel settings={settings} onSettingsChange={onSettingsChange} />
         <button
           onClick={handleCopy}
           className="toolbar-btn p-2"

@@ -1,13 +1,16 @@
-import { Code2, Settings } from 'lucide-react';
+import { Code2 } from 'lucide-react';
+import { ReactNode } from 'react';
 
 interface EditorHeaderProps {
   fileName?: string;
+  children?: ReactNode;
 }
 
-export const EditorHeader = ({ fileName = 'untitled' }: EditorHeaderProps) => {
+export const EditorHeader = ({ fileName = 'untitled', children }: EditorHeaderProps) => {
   return (
     <header className="flex items-center justify-between px-4 py-3 bg-card border-b border-border">
       <div className="flex items-center gap-3">
+        {children}
         <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 animate-pulse-glow">
           <Code2 className="w-5 h-5 text-primary" />
         </div>
@@ -16,13 +19,6 @@ export const EditorHeader = ({ fileName = 'untitled' }: EditorHeaderProps) => {
           <p className="text-xs text-muted-foreground font-mono">{fileName}</p>
         </div>
       </div>
-      
-      <button 
-        className="touch-target rounded-lg hover:bg-secondary/50 transition-colors"
-        aria-label="Settings"
-      >
-        <Settings className="w-5 h-5 text-muted-foreground" />
-      </button>
     </header>
   );
 };
