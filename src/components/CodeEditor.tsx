@@ -8,14 +8,38 @@ import { python } from '@codemirror/lang-python';
 import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
 import { json } from '@codemirror/lang-json';
+import { markdown } from '@codemirror/lang-markdown';
+import { sql } from '@codemirror/lang-sql';
+import { xml } from '@codemirror/lang-xml';
+import { java } from '@codemirror/lang-java';
+import { cpp } from '@codemirror/lang-cpp';
+import { rust } from '@codemirror/lang-rust';
+import { php } from '@codemirror/lang-php';
 import { oneDark } from '@codemirror/theme-one-dark';
 
-export type Language = 'javascript' | 'typescript' | 'python' | 'html' | 'css' | 'json';
+export type Language = 
+  | 'javascript' 
+  | 'typescript' 
+  | 'python' 
+  | 'html' 
+  | 'css' 
+  | 'json'
+  | 'markdown'
+  | 'sql'
+  | 'xml'
+  | 'java'
+  | 'cpp'
+  | 'rust'
+  | 'php';
+
+export type EditorTheme = 'dark' | 'monokai' | 'dracula' | 'nord';
 
 interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
   language: Language;
+  fontSize?: number;
+  theme?: EditorTheme;
   className?: string;
 }
 
@@ -33,12 +57,63 @@ const getLanguageExtension = (lang: Language) => {
       return css();
     case 'json':
       return json();
+    case 'markdown':
+      return markdown();
+    case 'sql':
+      return sql();
+    case 'xml':
+      return xml();
+    case 'java':
+      return java();
+    case 'cpp':
+      return cpp();
+    case 'rust':
+      return rust();
+    case 'php':
+      return php();
     default:
       return javascript();
   }
 };
 
-export const CodeEditor = ({ value, onChange, language, className = '' }: CodeEditorProps) => {
+const getThemeColors = (theme: EditorTheme) => {
+  const themes = {
+    dark: {
+      bg: '#1a1b26',
+      gutterBg: '#16171f',
+      activeLine: '#1e1f2b',
+      selection: 'rgba(125, 207, 255, 0.2)',
+    },
+    monokai: {
+      bg: '#272822',
+      gutterBg: '#1e1f1c',
+      activeLine: '#3e3d32',
+      selection: 'rgba(249, 38, 114, 0.2)',
+    },
+    dracula: {
+      bg: '#282a36',
+      gutterBg: '#21222c',
+      activeLine: '#44475a',
+      selection: 'rgba(189, 147, 249, 0.2)',
+    },
+    nord: {
+      bg: '#2e3440',
+      gutterBg: '#272c36',
+      activeLine: '#3b4252',
+      selection: 'rgba(136, 192, 208, 0.2)',
+    },
+  };
+  return themes[theme];
+};
+
+export const CodeEditor = ({ 
+  value, 
+  onChange, 
+  language, 
+  fontSize = 14, 
+  theme = 'dark',
+  className = '' 
+}: CodeEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
 
@@ -50,6 +125,8 @@ export const CodeEditor = ({ value, onChange, language, className = '' }: CodeEd
 
   useEffect(() => {
     if (!editorRef.current) return;
+
+    const themeColors = getThemeColors(theme);
 
     const state = EditorState.create({
       doc: value,
@@ -66,9 +143,24 @@ export const CodeEditor = ({ value, onChange, language, className = '' }: CodeEd
         EditorView.theme({
           '&': {
             height: '100%',
+            fontSize: `${fontSize}px`,
+            backgroundColor: themeColors.bg,
           },
           '.cm-scroller': {
             overflow: 'auto',
+          },
+          '.cm-gutters': {
+            backgroundColor: themeColors.gutterBg,
+            borderRight: '1px solid rgba(255,255,255,0.1)',
+          },
+          '.cm-activeLine': {
+            backgroundColor: themeColors.activeLine,
+          },
+          '.cm-activeLineGutter': {
+            backgroundColor: themeColors.activeLine,
+          },
+          '.cm-selectionBackground': {
+            backgroundColor: `${themeColors.selection} !important`,
           },
         }),
       ],
@@ -84,7 +176,7 @@ export const CodeEditor = ({ value, onChange, language, className = '' }: CodeEd
     return () => {
       view.destroy();
     };
-  }, [language]); // Recreate editor when language changes
+  }, [language, fontSize, theme]); // Recreate editor when these change
 
   // Update content when value prop changes externally
   useEffect(() => {
