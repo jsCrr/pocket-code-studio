@@ -128,6 +128,12 @@ export const CodeEditor = ({
 
     const themeColors = getThemeColors(theme);
 
+    // Clear previous editor instance
+    if (viewRef.current) {
+      viewRef.current.destroy();
+      viewRef.current = null;
+    }
+
     const state = EditorState.create({
       doc: value,
       extensions: [
@@ -146,12 +152,17 @@ export const CodeEditor = ({
             fontSize: `${fontSize}px`,
             backgroundColor: themeColors.bg,
           },
+          '.cm-content': {
+            fontSize: `${fontSize}px`,
+            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+          },
           '.cm-scroller': {
             overflow: 'auto',
           },
           '.cm-gutters': {
             backgroundColor: themeColors.gutterBg,
             borderRight: '1px solid rgba(255,255,255,0.1)',
+            fontSize: `${fontSize}px`,
           },
           '.cm-activeLine': {
             backgroundColor: themeColors.activeLine,
@@ -174,9 +185,12 @@ export const CodeEditor = ({
     viewRef.current = view;
 
     return () => {
-      view.destroy();
+      if (viewRef.current) {
+        viewRef.current.destroy();
+        viewRef.current = null;
+      }
     };
-  }, [language, fontSize, theme]); // Recreate editor when these change
+  }, [language, fontSize, theme, handleChange]); // Recreate editor when these change
 
   // Update content when value prop changes externally
   useEffect(() => {

@@ -2,10 +2,10 @@ import { useState, useCallback } from 'react';
 import { CodeEditor, Language } from '@/components/CodeEditor';
 import { EditorHeader } from '@/components/EditorHeader';
 import { EditorToolbar } from '@/components/EditorToolbar';
-import { OutputPanel } from '@/components/OutputPanel';
-import { FileTreeView, FileNode } from '@/components/FileTreeView';
+import { FileTreeView, FileNode, getLanguageFromExtension } from '@/components/FileTreeView';
 import { useEditorSettings } from '@/hooks/useEditorSettings';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
+import { toast } from 'sonner';
 
 const defaultCode: Record<Language, string> = {
   javascript: `// Welcome to Mobile Code Editor
@@ -204,13 +204,13 @@ const initialFiles: FileNode[] = [
     name: 'src',
     type: 'folder',
     children: [
-      { id: 'main-js', name: 'main.js', type: 'file', language: 'javascript' },
-      { id: 'main-ts', name: 'main.ts', type: 'file', language: 'typescript' },
-      { id: 'main-py', name: 'main.py', type: 'file', language: 'python' },
-      { id: 'app-java', name: 'App.java', type: 'file', language: 'java' },
-      { id: 'main-cpp', name: 'main.cpp', type: 'file', language: 'cpp' },
-      { id: 'main-rs', name: 'main.rs', type: 'file', language: 'rust' },
-      { id: 'index-php', name: 'index.php', type: 'file', language: 'php' },
+      { id: 'main-js', name: 'main.js', type: 'file', language: 'javascript', content: defaultCode.javascript },
+      { id: 'main-ts', name: 'main.ts', type: 'file', language: 'typescript', content: defaultCode.typescript },
+      { id: 'main-py', name: 'main.py', type: 'file', language: 'python', content: defaultCode.python },
+      { id: 'app-java', name: 'App.java', type: 'file', language: 'java', content: defaultCode.java },
+      { id: 'main-cpp', name: 'main.cpp', type: 'file', language: 'cpp', content: defaultCode.cpp },
+      { id: 'main-rs', name: 'main.rs', type: 'file', language: 'rust', content: defaultCode.rust },
+      { id: 'index-php', name: 'index.php', type: 'file', language: 'php', content: defaultCode.php },
     ],
   },
   {
@@ -218,8 +218,8 @@ const initialFiles: FileNode[] = [
     name: 'public',
     type: 'folder',
     children: [
-      { id: 'index-html', name: 'index.html', type: 'file', language: 'html' },
-      { id: 'styles-css', name: 'styles.css', type: 'file', language: 'css' },
+      { id: 'index-html', name: 'index.html', type: 'file', language: 'html', content: defaultCode.html },
+      { id: 'styles-css', name: 'styles.css', type: 'file', language: 'css', content: defaultCode.css },
     ],
   },
   {
@@ -227,34 +227,57 @@ const initialFiles: FileNode[] = [
     name: 'data',
     type: 'folder',
     children: [
-      { id: 'data-json', name: 'data.json', type: 'file', language: 'json' },
-      { id: 'config-xml', name: 'config.xml', type: 'file', language: 'xml' },
-      { id: 'queries-sql', name: 'queries.sql', type: 'file', language: 'sql' },
+      { id: 'data-json', name: 'data.json', type: 'file', language: 'json', content: defaultCode.json },
+      { id: 'config-xml', name: 'config.xml', type: 'file', language: 'xml', content: defaultCode.xml },
+      { id: 'queries-sql', name: 'queries.sql', type: 'file', language: 'sql', content: defaultCode.sql },
     ],
   },
-  { id: 'readme-md', name: 'README.md', type: 'file', language: 'markdown' },
+  { id: 'readme-md', name: 'README.md', type: 'file', language: 'markdown', content: defaultCode.markdown },
 ];
 
-const fileToLanguage: Record<string, Language> = {
-  'main-js': 'javascript',
-  'main-ts': 'typescript',
-  'main-py': 'python',
-  'index-html': 'html',
-  'styles-css': 'css',
-  'data-json': 'json',
-  'readme-md': 'markdown',
-  'queries-sql': 'sql',
-  'config-xml': 'xml',
-  'app-java': 'java',
-  'main-cpp': 'cpp',
-  'main-rs': 'rust',
-  'index-php': 'php',
+const findFileById = (nodes: FileNode[], id: string): FileNode | null => {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    if (node.children) {
+      const found = findFileById(node.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+const updateFileContent = (nodes: FileNode[], id: string, content: string): FileNode[] => {
+  return nodes.map(node => {
+    if (node.id === id) {
+      return { ...node, content };
+    }
+    if (node.children) {
+      return { ...node, children: updateFileContent(node.children, id, content) };
+    }
+    return node;
+  });
+};
+
+const collectAllFiles = (nodes: FileNode[], path: string = ''): { path: string; content: string }[] => {
+  const result: { path: string; content: string }[] = [];
+  
+  for (const node of nodes) {
+    const currentPath = path ? `${path}/${node.name}` : node.name;
+    if (node.type === 'file' && node.content !== undefined) {
+      result.push({ path: currentPath, content: node.content });
+    }
+    if (node.children) {
+      result.push(...collectAllFiles(node.children, currentPath));
+    }
+  }
+  
+  return result;
 };
 
 const Index = () => {
+  const [files, setFiles] = useState<FileNode[]>(initialFiles);
   const [language, setLanguage] = useState<Language>('javascript');
   const [code, setCode] = useState(defaultCode.javascript);
-  const [output, setOutput] = useState<string[]>([]);
   const [selectedFileId, setSelectedFileId] = useState<string>('main-js');
   const [showTree, setShowTree] = useState(false);
   const { settings, setSettings } = useEditorSettings();
@@ -262,20 +285,31 @@ const Index = () => {
   const handleLanguageChange = useCallback((lang: Language) => {
     setLanguage(lang);
     setCode(defaultCode[lang]);
-    setOutput([]);
   }, []);
 
   const handleFileSelect = useCallback((file: FileNode) => {
     if (file.type === 'file' && file.id) {
-      const lang = fileToLanguage[file.id];
+      // Save current file content before switching
+      setFiles(prev => updateFileContent(prev, selectedFileId, code));
+      
+      setSelectedFileId(file.id);
+      const lang = file.language || getLanguageFromExtension(file.name);
       if (lang) {
-        setSelectedFileId(file.id);
         setLanguage(lang);
-        setCode(defaultCode[lang]);
-        setOutput([]);
-        setShowTree(false); // Close tree on mobile after selection
+        setCode(file.content || defaultCode[lang] || '');
       }
+      setShowTree(false); // Close tree on mobile after selection
     }
+  }, [selectedFileId, code]);
+
+  const handleCodeChange = useCallback((newCode: string) => {
+    setCode(newCode);
+    // Update file content in state
+    setFiles(prev => updateFileContent(prev, selectedFileId, newCode));
+  }, [selectedFileId]);
+
+  const handleFilesChange = useCallback((newFiles: FileNode[]) => {
+    setFiles(newFiles);
   }, []);
 
   const handleCopy = useCallback(async () => {
@@ -291,50 +325,54 @@ const Index = () => {
   }, []);
 
   const handleRun = useCallback(() => {
-    if (language === 'javascript' || language === 'typescript') {
-      try {
-        const logs: string[] = [];
-        const originalLog = console.log;
-        console.log = (...args) => {
-          logs.push(args.map(arg => 
-            typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-          ).join(' '));
-        };
-        
-        // eslint-disable-next-line no-eval
-        eval(code);
-        
-        console.log = originalLog;
-        setOutput(logs.length > 0 ? logs : ['Code executed successfully (no output)']);
-      } catch (err) {
-        setOutput([`Error: ${err instanceof Error ? err.message : 'Unknown error'}`]);
-      }
-    } else {
-      setOutput([`Preview not available for ${language}. Use a native runtime for execution.`]);
-    }
-  }, [code, language]);
-
-  const handleClearOutput = useCallback(() => {
-    setOutput([]);
+    // Removed console functionality as requested
+    toast.info('Run functionality removed');
   }, []);
 
+  const handleDownloadFile = useCallback((file: FileNode) => {
+    if (file.type !== 'file') return;
+    
+    const content = file.content || '';
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${file.name}`);
+  }, []);
+
+  const handleDownloadProject = useCallback(() => {
+    // Collect all files and create a combined download
+    const allFiles = collectAllFiles(files);
+    
+    // Create a simple text format with all files
+    let projectContent = '=== PROJECT EXPORT ===\n\n';
+    
+    for (const file of allFiles) {
+      projectContent += `--- ${file.path} ---\n`;
+      projectContent += file.content;
+      projectContent += '\n\n';
+    }
+    
+    const blob = new Blob([projectContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'project-export.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Project downloaded');
+  }, [files]);
+
   const getFileName = () => {
-    const extensions: Record<Language, string> = {
-      javascript: 'main.js',
-      typescript: 'main.ts',
-      python: 'main.py',
-      html: 'index.html',
-      css: 'styles.css',
-      json: 'data.json',
-      markdown: 'README.md',
-      sql: 'queries.sql',
-      xml: 'config.xml',
-      java: 'App.java',
-      cpp: 'main.cpp',
-      rust: 'main.rs',
-      php: 'index.php',
-    };
-    return extensions[language];
+    const file = findFileById(files, selectedFileId);
+    return file?.name || 'untitled';
   };
 
   return (
@@ -348,9 +386,12 @@ const Index = () => {
         `}
       >
         <FileTreeView 
-          files={initialFiles} 
+          files={files} 
           selectedFileId={selectedFileId}
-          onFileSelect={handleFileSelect} 
+          onFileSelect={handleFileSelect}
+          onFilesChange={handleFilesChange}
+          onDownloadFile={handleDownloadFile}
+          onDownloadProject={handleDownloadProject}
         />
       </div>
       
@@ -385,13 +426,12 @@ const Index = () => {
         <div className="flex-1 min-h-0 overflow-hidden">
           <CodeEditor
             value={code}
-            onChange={setCode}
+            onChange={handleCodeChange}
             language={language}
             fontSize={settings.fontSize}
             theme={settings.theme}
           />
         </div>
-        <OutputPanel output={output} onClear={handleClearOutput} />
       </div>
     </div>
   );
