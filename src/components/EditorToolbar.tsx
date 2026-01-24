@@ -1,4 +1,4 @@
-import { Copy, Trash2, Play, FileCode, ChevronDown } from 'lucide-react';
+import { Copy, Trash2, FileCode, ChevronDown } from 'lucide-react';
 import { Language } from './CodeEditor';
 import { toast } from 'sonner';
 import { SettingsPanel } from './SettingsPanel';
@@ -17,7 +17,6 @@ interface EditorToolbarProps {
   onLanguageChange: (lang: Language) => void;
   onCopy: () => void;
   onClear: () => void;
-  onRun: () => void;
   settings: EditorSettings;
   onSettingsChange: (settings: EditorSettings) => void;
 }
@@ -54,7 +53,6 @@ export const EditorToolbar = ({
   onLanguageChange,
   onCopy,
   onClear,
-  onRun,
   settings,
   onSettingsChange,
 }: EditorToolbarProps) => {
@@ -68,11 +66,6 @@ export const EditorToolbar = ({
   const handleClear = () => {
     onClear();
     toast.success('Editor cleared');
-  };
-
-  const handleRun = () => {
-    onRun();
-    toast.success('Code executed');
   };
 
   return (
@@ -124,13 +117,6 @@ export const EditorToolbar = ({
           aria-label="Clear editor"
         >
           <Trash2 className="w-5 h-5" />
-        </button>
-        <button
-          onClick={handleRun}
-          className="toolbar-btn-primary p-2 glow-primary"
-          aria-label="Run code"
-        >
-          <Play className="w-5 h-5" />
         </button>
       </div>
     </div>
