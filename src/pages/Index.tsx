@@ -324,11 +324,6 @@ const Index = () => {
     setCode('');
   }, []);
 
-  const handleRun = useCallback(() => {
-    // Removed console functionality as requested
-    toast.info('Run functionality removed');
-  }, []);
-
   const handleDownloadFile = useCallback((file: FileNode) => {
     if (file.type !== 'file') return;
     
@@ -337,7 +332,7 @@ const Index = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = file.name;
+    a.download = file.name + '.txt';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -345,29 +340,34 @@ const Index = () => {
     toast.success(`Downloaded ${file.name}`);
   }, []);
 
-  const handleDownloadProject = useCallback(() => {
-    // Collect all files and create a combined download
-    const allFiles = collectAllFiles(files);
+  const handleDownloadProject = useCallback(async () => {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
     
-    // Create a simple text format with all files
-    let projectContent = '=== PROJECT EXPORT ===\n\n';
+    const addFilesToZip = (nodes: FileNode[], path: string = '') => {
+      for (const node of nodes) {
+        const currentPath = path ? `${path}/${node.name}` : node.name;
+        if (node.type === 'file' && node.content !== undefined) {
+          zip.file(currentPath, node.content);
+        }
+        if (node.children) {
+          addFilesToZip(node.children, currentPath);
+        }
+      }
+    };
     
-    for (const file of allFiles) {
-      projectContent += `--- ${file.path} ---\n`;
-      projectContent += file.content;
-      projectContent += '\n\n';
-    }
+    addFilesToZip(files);
     
-    const blob = new Blob([projectContent], { type: 'text/plain' });
+    const blob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'project-export.txt';
+    a.download = 'project.zip';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('Project downloaded');
+    toast.success('Project downloaded as ZIP');
   }, [files]);
 
   const getFileName = () => {
@@ -419,7 +419,6 @@ const Index = () => {
           onLanguageChange={handleLanguageChange}
           onCopy={handleCopy}
           onClear={handleClear}
-          onRun={handleRun}
           settings={settings}
           onSettingsChange={setSettings}
         />

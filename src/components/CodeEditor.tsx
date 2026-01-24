@@ -123,16 +123,11 @@ export const CodeEditor = ({
     }
   }, [onChange]);
 
+  // Initialize editor once
   useEffect(() => {
     if (!editorRef.current) return;
 
     const themeColors = getThemeColors(theme);
-
-    // Clear previous editor instance
-    if (viewRef.current) {
-      viewRef.current.destroy();
-      viewRef.current = null;
-    }
 
     const state = EditorState.create({
       doc: value,
@@ -190,7 +185,66 @@ export const CodeEditor = ({
         viewRef.current = null;
       }
     };
-  }, [language, fontSize, theme, handleChange]); // Recreate editor when these change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update editor when language, fontSize, or theme changes
+  useEffect(() => {
+    if (!viewRef.current || !editorRef.current) return;
+
+    const themeColors = getThemeColors(theme);
+    const currentDoc = viewRef.current.state.doc.toString();
+    
+    viewRef.current.destroy();
+
+    const state = EditorState.create({
+      doc: currentDoc,
+      extensions: [
+        lineNumbers(),
+        highlightActiveLine(),
+        highlightActiveLineGutter(),
+        bracketMatching(),
+        syntaxHighlighting(defaultHighlightStyle),
+        oneDark,
+        getLanguageExtension(language),
+        keymap.of([...defaultKeymap, indentWithTab]),
+        EditorView.updateListener.of(handleChange),
+        EditorView.theme({
+          '&': {
+            height: '100%',
+            fontSize: `${fontSize}px`,
+            backgroundColor: themeColors.bg,
+          },
+          '.cm-content': {
+            fontSize: `${fontSize}px`,
+            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+          },
+          '.cm-scroller': {
+            overflow: 'auto',
+          },
+          '.cm-gutters': {
+            backgroundColor: themeColors.gutterBg,
+            borderRight: '1px solid rgba(255,255,255,0.1)',
+            fontSize: `${fontSize}px`,
+          },
+          '.cm-activeLine': {
+            backgroundColor: themeColors.activeLine,
+          },
+          '.cm-activeLineGutter': {
+            backgroundColor: themeColors.activeLine,
+          },
+          '.cm-selectionBackground': {
+            backgroundColor: `${themeColors.selection} !important`,
+          },
+        }),
+      ],
+    });
+
+    viewRef.current = new EditorView({
+      state,
+      parent: editorRef.current,
+    });
+  }, [language, fontSize, theme, handleChange]);
 
   // Update content when value prop changes externally
   useEffect(() => {

@@ -86,20 +86,36 @@ const getLanguageFromExtension = (name: string): Language | undefined => {
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
+
 interface TreeNodeProps {
   node: FileNode;
   depth: number;
   selectedFileId?: string;
   onFileSelect: (file: FileNode) => void;
-  onAddFile: (parentId: string | null, type: 'file' | 'folder') => void;
+  onAddFile: (parentId: string, type: 'file' | 'folder') => void;
   onDeleteNode: (nodeId: string) => void;
   onDownloadFile: (file: FileNode) => void;
+  pendingNewItem: { parentId: string; type: 'file' | 'folder' } | null;
+  onConfirmNew: (name: string) => void;
+  onCancelNew: () => void;
 }
 
-const TreeNode = ({ node, depth, selectedFileId, onFileSelect, onAddFile, onDeleteNode, onDownloadFile }: TreeNodeProps) => {
+const TreeNode = ({ 
+  node, 
+  depth, 
+  selectedFileId, 
+  onFileSelect, 
+  onAddFile, 
+  onDeleteNode, 
+  onDownloadFile,
+  pendingNewItem,
+  onConfirmNew,
+  onCancelNew,
+}: TreeNodeProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const isFolder = node.type === 'folder';
   const isSelected = node.id === selectedFileId;
+  const showNewItemInput = pendingNewItem?.parentId === node.id;
 
   const handleClick = () => {
     if (isFolder) {
@@ -112,8 +128,10 @@ const TreeNode = ({ node, depth, selectedFileId, onFileSelect, onAddFile, onDele
   const handleContextAction = (action: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (action === 'newFile') {
+      setIsExpanded(true);
       onAddFile(node.id, 'file');
     } else if (action === 'newFolder') {
+      setIsExpanded(true);
       onAddFile(node.id, 'folder');
     } else if (action === 'delete') {
       onDeleteNode(node.id);
@@ -195,9 +213,18 @@ const TreeNode = ({ node, depth, selectedFileId, onFileSelect, onAddFile, onDele
         </div>
       </div>
       
-      {isFolder && isExpanded && node.children && (
+      {isFolder && isExpanded && (
         <div>
-          {node.children.map((child) => (
+          {showNewItemInput && (
+            <div style={{ paddingLeft: `${(depth + 1) * 12 + 8}px` }}>
+              <NewItemInput
+                type={pendingNewItem.type}
+                onConfirm={onConfirmNew}
+                onCancel={onCancelNew}
+              />
+            </div>
+          )}
+          {node.children?.map((child) => (
             <TreeNode
               key={child.id}
               node={child}
@@ -207,6 +234,9 @@ const TreeNode = ({ node, depth, selectedFileId, onFileSelect, onAddFile, onDele
               onAddFile={onAddFile}
               onDeleteNode={onDeleteNode}
               onDownloadFile={onDownloadFile}
+              pendingNewItem={pendingNewItem}
+              onConfirmNew={onConfirmNew}
+              onCancelNew={onCancelNew}
             />
           ))}
         </div>
@@ -266,7 +296,6 @@ export const FileTreeView = ({ files, selectedFileId, onFileSelect, onFilesChang
 
   const addNodeToTree = useCallback((nodes: FileNode[], parentId: string | null, newNode: FileNode): FileNode[] => {
     if (parentId === null) {
-      // Add to root level - but respect structure (folders first, then files)
       const folders = nodes.filter(n => n.type === 'folder');
       const rootFiles = nodes.filter(n => n.type === 'file');
       
@@ -281,12 +310,12 @@ export const FileTreeView = ({ files, selectedFileId, onFileSelect, onFilesChang
       if (node.id === parentId && node.type === 'folder') {
         const children = node.children || [];
         const folders = children.filter(n => n.type === 'folder');
-        const files = children.filter(n => n.type === 'file');
+        const nodeFiles = children.filter(n => n.type === 'file');
         
         if (newNode.type === 'folder') {
-          return { ...node, children: [...folders, newNode, ...files] };
+          return { ...node, children: [...folders, newNode, ...nodeFiles] };
         } else {
-          return { ...node, children: [...folders, ...files, newNode] };
+          return { ...node, children: [...folders, ...nodeFiles, newNode] };
         }
       }
       if (node.children) {
@@ -330,6 +359,10 @@ export const FileTreeView = ({ files, selectedFileId, onFileSelect, onFilesChang
     toast.success(`${newItem.type === 'folder' ? 'Folder' : 'File'} created`);
   };
 
+  const handleCancelNew = () => {
+    setNewItem(null);
+  };
+
   const handleDeleteNode = (nodeId: string) => {
     const updatedFiles = deleteNodeFromTree(files, nodeId);
     onFilesChange(updatedFiles);
@@ -371,7 +404,7 @@ export const FileTreeView = ({ files, selectedFileId, onFileSelect, onFilesChang
           <NewItemInput
             type={newItem.type}
             onConfirm={handleConfirmNew}
-            onCancel={() => setNewItem(null)}
+            onCancel={handleCancelNew}
           />
         )}
         {files.map((node) => (
@@ -384,6 +417,9 @@ export const FileTreeView = ({ files, selectedFileId, onFileSelect, onFilesChang
             onAddFile={handleAddFile}
             onDeleteNode={handleDeleteNode}
             onDownloadFile={onDownloadFile}
+            pendingNewItem={newItem}
+            onConfirmNew={handleConfirmNew}
+            onCancelNew={handleCancelNew}
           />
         ))}
       </div>
