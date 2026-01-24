@@ -324,15 +324,29 @@ const Index = () => {
     setCode('');
   }, []);
 
-  const handleDownloadFile = useCallback((file: FileNode) => {
-    if (file.type !== 'file') return;
+  const handleDownloadFile = useCallback(async (file: FileNode) => {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
     
-    const content = file.content || '';
-    const blob = new Blob([content], { type: 'text/plain' });
+    const addToZip = (node: FileNode, path: string = '') => {
+      const currentPath = path ? `${path}/${node.name}` : node.name;
+      if (node.type === 'file' && node.content !== undefined) {
+        zip.file(currentPath, node.content);
+      }
+      if (node.children) {
+        for (const child of node.children) {
+          addToZip(child, currentPath);
+        }
+      }
+    };
+    
+    addToZip(file);
+    
+    const blob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = file.name + '.txt';
+    a.download = file.type === 'folder' ? `${file.name}.zip` : `${file.name}.zip`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

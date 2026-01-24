@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, FileText, FileJson, Plus, FolderPlus, FilePlus, Download, Trash2, X, Check } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, FileText, FileJson, FolderPlus, FilePlus, Download, Trash2, X, Check, MoreHorizontal, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Language } from './CodeEditor';
 import { toast } from 'sonner';
@@ -95,6 +95,7 @@ interface TreeNodeProps {
   onAddFile: (parentId: string, type: 'file' | 'folder') => void;
   onDeleteNode: (nodeId: string) => void;
   onDownloadFile: (file: FileNode) => void;
+  onRenameNode: (nodeId: string, newName: string) => void;
   pendingNewItem: { parentId: string; type: 'file' | 'folder' } | null;
   onConfirmNew: (name: string) => void;
   onCancelNew: () => void;
@@ -108,11 +109,14 @@ const TreeNode = ({
   onAddFile, 
   onDeleteNode, 
   onDownloadFile,
+  onRenameNode,
   pendingNewItem,
   onConfirmNew,
   onCancelNew,
 }: TreeNodeProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(node.name);
   const isFolder = node.type === 'folder';
   const isSelected = node.id === selectedFileId;
   const showNewItemInput = pendingNewItem?.parentId === node.id;
@@ -125,68 +129,93 @@ const TreeNode = ({
     }
   };
 
-  const handleContextAction = (action: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (action === 'newFile') {
-      setIsExpanded(true);
-      onAddFile(node.id, 'file');
-    } else if (action === 'newFolder') {
-      setIsExpanded(true);
-      onAddFile(node.id, 'folder');
-    } else if (action === 'delete') {
-      onDeleteNode(node.id);
-    } else if (action === 'download') {
-      onDownloadFile(node);
+  const handleRenameSubmit = () => {
+    if (renameValue.trim() && renameValue !== node.name) {
+      onRenameNode(node.id, renameValue.trim());
     }
+    setIsRenaming(false);
   };
 
   return (
     <div>
       <div className="group flex items-center">
-        <button
-          onClick={handleClick}
-          className={cn(
-            'flex-1 flex items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors rounded-md',
-            'hover:bg-secondary/50',
-            isSelected && 'bg-primary/20 text-primary'
-          )}
-          style={{ paddingLeft: `${depth * 12 + 8}px` }}
-        >
-          {isFolder ? (
-            <>
-              {isExpanded ? (
-                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-              )}
-              {isExpanded ? (
-                <FolderOpen className="w-4 h-4 text-warning" />
-              ) : (
-                <Folder className="w-4 h-4 text-warning" />
-              )}
-            </>
-          ) : (
-            <>
-              <span className="w-3.5" />
-              {getFileIcon(node.name, node.language)}
-            </>
-          )}
-          <span className="truncate flex-1">{node.name}</span>
-        </button>
+        {isRenaming ? (
+          <div className="flex-1 flex items-center gap-1 px-2 py-1" style={{ paddingLeft: `${depth * 12 + 8}px` }}>
+            {isFolder ? (
+              <Folder className="w-4 h-4 text-warning" />
+            ) : (
+              getFileIcon(node.name, node.language)
+            )}
+            <input
+              type="text"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameSubmit();
+                if (e.key === 'Escape') {
+                  setRenameValue(node.name);
+                  setIsRenaming(false);
+                }
+              }}
+              onBlur={handleRenameSubmit}
+              className="flex-1 bg-secondary/50 text-sm px-2 py-0.5 rounded border border-border focus:outline-none focus:border-primary"
+              autoFocus
+            />
+          </div>
+        ) : (
+          <button
+            onClick={handleClick}
+            className={cn(
+              'flex-1 flex items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors rounded-md',
+              'hover:bg-secondary/50',
+              isSelected && 'bg-primary/20 text-primary'
+            )}
+            style={{ paddingLeft: `${depth * 12 + 8}px` }}
+          >
+            {isFolder ? (
+              <>
+                {isExpanded ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
+                {isExpanded ? (
+                  <FolderOpen className="w-4 h-4 text-warning" />
+                ) : (
+                  <Folder className="w-4 h-4 text-warning" />
+                )}
+              </>
+            ) : (
+              <>
+                <span className="w-3.5" />
+                {getFileIcon(node.name, node.language)}
+              </>
+            )}
+            <span className="truncate flex-1">{node.name}</span>
+          </button>
+        )}
         
-        {/* Action buttons */}
-        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 pr-1">
+        {/* Context menu */}
+        <div className="opacity-0 group-hover:opacity-100 flex items-center pr-1">
           {isFolder && (
             <>
               <button
-                onClick={(e) => handleContextAction('newFile', e)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(true);
+                  onAddFile(node.id, 'file');
+                }}
                 className="p-1 hover:bg-secondary rounded"
                 title="New File"
               >
                 <FilePlus className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
               <button
-                onClick={(e) => handleContextAction('newFolder', e)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(true);
+                  onAddFile(node.id, 'folder');
+                }}
                 className="p-1 hover:bg-secondary rounded"
                 title="New Folder"
               >
@@ -194,22 +223,35 @@ const TreeNode = ({
               </button>
             </>
           )}
-          {!isFolder && (
-            <button
-              onClick={(e) => handleContextAction('download', e)}
-              className="p-1 hover:bg-secondary rounded"
-              title="Download"
-            >
-              <Download className="w-3.5 h-3.5 text-muted-foreground" />
-            </button>
-          )}
-          <button
-            onClick={(e) => handleContextAction('delete', e)}
-            className="p-1 hover:bg-destructive/20 rounded"
-            title="Delete"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 hover:bg-secondary rounded"
+                title="More actions"
+              >
+                <MoreHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuItem onClick={() => setIsRenaming(true)}>
+                <Pencil className="w-3.5 h-3.5 mr-2" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDownloadFile(node)}>
+                <Download className="w-3.5 h-3.5 mr-2" />
+                Download
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => onDeleteNode(node.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       
@@ -225,7 +267,7 @@ const TreeNode = ({
             </div>
           )}
           {node.children?.map((child) => (
-            <TreeNode
+          <TreeNode
               key={child.id}
               node={child}
               depth={depth + 1}
@@ -234,6 +276,7 @@ const TreeNode = ({
               onAddFile={onAddFile}
               onDeleteNode={onDeleteNode}
               onDownloadFile={onDownloadFile}
+              onRenameNode={onRenameNode}
               pendingNewItem={pendingNewItem}
               onConfirmNew={onConfirmNew}
               onCancelNew={onCancelNew}
@@ -334,6 +377,19 @@ export const FileTreeView = ({ files, selectedFileId, onFileSelect, onFilesChang
     });
   }, []);
 
+  const renameNodeInTree = useCallback((nodes: FileNode[], nodeId: string, newName: string): FileNode[] => {
+    return nodes.map(node => {
+      if (node.id === nodeId) {
+        const language = node.type === 'file' ? getLanguageFromExtension(newName) : undefined;
+        return { ...node, name: newName, ...(language && { language }) };
+      }
+      if (node.children) {
+        return { ...node, children: renameNodeInTree(node.children, nodeId, newName) };
+      }
+      return node;
+    });
+  }, []);
+
   const handleAddFile = (parentId: string | null, type: 'file' | 'folder') => {
     setNewItem({ parentId, type });
   };
@@ -369,8 +425,14 @@ export const FileTreeView = ({ files, selectedFileId, onFileSelect, onFilesChang
     toast.success('Deleted successfully');
   };
 
+  const handleRenameNode = (nodeId: string, newName: string) => {
+    const updatedFiles = renameNodeInTree(files, nodeId, newName);
+    onFilesChange(updatedFiles);
+    toast.success('Renamed successfully');
+  };
+
   return (
-    <div className="h-full bg-sidebar-background border-r border-sidebar-border overflow-auto">
+    <div className="h-full bg-sidebar-background/80 backdrop-blur-xl border-r border-sidebar-border overflow-auto">
       <div className="p-3 border-b border-sidebar-border flex items-center justify-between">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Explorer
@@ -417,6 +479,7 @@ export const FileTreeView = ({ files, selectedFileId, onFileSelect, onFilesChang
             onAddFile={handleAddFile}
             onDeleteNode={handleDeleteNode}
             onDownloadFile={onDownloadFile}
+            onRenameNode={handleRenameNode}
             pendingNewItem={newItem}
             onConfirmNew={handleConfirmNew}
             onCancelNew={handleCancelNew}
