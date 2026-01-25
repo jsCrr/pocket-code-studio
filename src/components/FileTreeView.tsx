@@ -196,7 +196,7 @@ const TreeNode = ({
         )}
         
         {/* Context menu */}
-        <div className="opacity-0 group-hover:opacity-100 flex items-center pr-1">
+        <div className="flex items-center pr-1">
           {isFolder && (
             <>
               <button
