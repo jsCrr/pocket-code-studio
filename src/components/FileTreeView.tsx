@@ -197,32 +197,6 @@ const TreeNode = ({
         
         {/* Context menu */}
         <div className="flex items-center pr-1">
-          {isFolder && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsExpanded(true);
-                  onAddFile(node.id, 'file');
-                }}
-                className="p-1 hover:bg-secondary rounded"
-                title="New File"
-              >
-                <FilePlus className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsExpanded(true);
-                  onAddFile(node.id, 'folder');
-                }}
-                className="p-1 hover:bg-secondary rounded"
-                title="New Folder"
-              >
-                <FolderPlus className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
-            </>
-          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -233,7 +207,26 @@ const TreeNode = ({
                 <MoreHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuContent align="end" className="w-40">
+              {isFolder && (
+                <>
+                  <DropdownMenuItem onClick={() => {
+                    setIsExpanded(true);
+                    onAddFile(node.id, 'file');
+                  }}>
+                    <FilePlus className="w-3.5 h-3.5 mr-2" />
+                    New File
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    setIsExpanded(true);
+                    onAddFile(node.id, 'folder');
+                  }}>
+                    <FolderPlus className="w-3.5 h-3.5 mr-2" />
+                    New Folder
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem onClick={() => setIsRenaming(true)}>
                 <Pencil className="w-3.5 h-3.5 mr-2" />
                 Rename
