@@ -5,6 +5,7 @@ import { EditorToolbar } from '@/components/EditorToolbar';
 import { FileTreeView, FileNode, getLanguageFromExtension } from '@/components/FileTreeView';
 import { FileTabs } from '@/components/FileTabs';
 import { SymbolBar } from '@/components/SymbolBar';
+import { EmptyEditorState } from '@/components/EmptyEditorState';
 import { useEditorSettings } from '@/hooks/useEditorSettings';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { toast } from 'sonner';
@@ -321,14 +322,21 @@ const Index = () => {
     setOpenFiles(prev => {
       const newOpenFiles = prev.filter(f => f.id !== fileId);
       
-      // If we're closing the active file, switch to another open file
-      if (fileId === selectedFileId && newOpenFiles.length > 0) {
-        const newActiveFile = newOpenFiles[newOpenFiles.length - 1];
-        setSelectedFileId(newActiveFile.id);
-        const lang = newActiveFile.language || getLanguageFromExtension(newActiveFile.name);
-        if (lang) {
-          setLanguage(lang);
-          setCode(newActiveFile.content || defaultCode[lang] || '');
+      // If we're closing the active file
+      if (fileId === selectedFileId) {
+        if (newOpenFiles.length > 0) {
+          // Switch to another open file
+          const newActiveFile = newOpenFiles[newOpenFiles.length - 1];
+          setSelectedFileId(newActiveFile.id);
+          const lang = newActiveFile.language || getLanguageFromExtension(newActiveFile.name);
+          if (lang) {
+            setLanguage(lang);
+            setCode(newActiveFile.content || defaultCode[lang] || '');
+          }
+        } else {
+          // No more files open - clear the selection
+          setSelectedFileId('');
+          setCode('');
         }
       }
       
@@ -480,17 +488,23 @@ const Index = () => {
           settings={settings}
           onSettingsChange={setSettings}
         />
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <CodeEditor
-            ref={editorRef}
-            value={code}
-            onChange={handleCodeChange}
-            language={language}
-            fontSize={settings.fontSize}
-            theme={settings.theme}
-          />
-        </div>
-        <SymbolBar onInsert={handleSymbolInsert} />
+        {openFiles.length > 0 ? (
+          <>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <CodeEditor
+                ref={editorRef}
+                value={code}
+                onChange={handleCodeChange}
+                language={language}
+                fontSize={settings.fontSize}
+                theme={settings.theme}
+              />
+            </div>
+            <SymbolBar onInsert={handleSymbolInsert} />
+          </>
+        ) : (
+          <EmptyEditorState />
+        )}
       </div>
     </div>
   );

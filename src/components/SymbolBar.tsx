@@ -34,7 +34,7 @@ export const SymbolBar = ({ onInsert }: SymbolBarProps) => {
   }, [onInsert]);
 
   return (
-    <div className="flex items-center gap-1 px-2 py-1.5 bg-toolbar-bg border-t border-toolbar-border overflow-x-auto scrollbar-hide">
+    <div className="sticky bottom-0 left-0 right-0 flex items-center gap-1 px-2 py-1.5 bg-toolbar-bg border-t border-toolbar-border overflow-x-auto scrollbar-hide z-50">
       {symbols.map((sym) => (
         <button
           key={sym.value}
