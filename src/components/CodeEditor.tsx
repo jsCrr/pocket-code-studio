@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { EditorState } from '@codemirror/state';
 import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter, keymap } from '@codemirror/view';
 import { defaultKeymap, indentWithTab } from '@codemirror/commands';
@@ -41,6 +41,10 @@ interface CodeEditorProps {
   fontSize?: number;
   theme?: EditorTheme;
   className?: string;
+}
+
+export interface CodeEditorRef {
+  insertText: (text: string) => void;
 }
 
 const getLanguageExtension = (lang: Language) => {
@@ -106,16 +110,30 @@ const getThemeColors = (theme: EditorTheme) => {
   return themes[theme];
 };
 
-export const CodeEditor = ({ 
+export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({ 
   value, 
   onChange, 
   language, 
   fontSize = 14, 
   theme = 'dark',
   className = '' 
-}: CodeEditorProps) => {
+}, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    insertText: (text: string) => {
+      if (viewRef.current) {
+        const { state } = viewRef.current;
+        const selection = state.selection.main;
+        viewRef.current.dispatch({
+          changes: { from: selection.from, to: selection.to, insert: text },
+          selection: { anchor: selection.from + text.length },
+        });
+        viewRef.current.focus();
+      }
+    },
+  }));
 
   const handleChange = useCallback((update: { state: EditorState; docChanged: boolean }) => {
     if (update.docChanged) {
@@ -264,4 +282,6 @@ export const CodeEditor = ({
       className={`editor-container h-full ${className}`}
     />
   );
-};
+});
+
+CodeEditor.displayName = 'CodeEditor';
