@@ -1,10 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { CodeEditor, Language, CodeEditorRef } from '@/components/CodeEditor';
 import { EditorHeader } from '@/components/EditorHeader';
-import { EditorToolbar } from '@/components/EditorToolbar';
 import { FileTreeView, FileNode, getLanguageFromExtension } from '@/components/FileTreeView';
 import { FileTabs } from '@/components/FileTabs';
-import { SymbolBar } from '@/components/SymbolBar';
 import { EmptyEditorState } from '@/components/EmptyEditorState';
 import { useEditorSettings } from '@/hooks/useEditorSettings';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
@@ -465,7 +463,11 @@ const Index = () => {
 
       {/* Main Editor Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <EditorHeader fileName={getFileName()}>
+        <EditorHeader 
+          fileName={getFileName()}
+          settings={settings}
+          onSettingsChange={setSettings}
+        >
           <button
             onClick={() => setShowTree(!showTree)}
             className="toolbar-btn p-2 mr-2"
@@ -480,28 +482,17 @@ const Index = () => {
           onSelectFile={handleFileSelect}
           onCloseFile={handleCloseFile}
         />
-        <EditorToolbar
-          language={language}
-          onLanguageChange={handleLanguageChange}
-          onCopy={handleCopy}
-          onClear={handleClear}
-          settings={settings}
-          onSettingsChange={setSettings}
-        />
         {openFiles.length > 0 ? (
-          <>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <CodeEditor
-                ref={editorRef}
-                value={code}
-                onChange={handleCodeChange}
-                language={language}
-                fontSize={settings.fontSize}
-                theme={settings.theme}
-              />
-            </div>
-            <SymbolBar onInsert={handleSymbolInsert} />
-          </>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <CodeEditor
+              ref={editorRef}
+              value={code}
+              onChange={handleCodeChange}
+              language={language}
+              fontSize={settings.fontSize}
+              theme={settings.theme}
+            />
+          </div>
         ) : (
           <EmptyEditorState />
         )}

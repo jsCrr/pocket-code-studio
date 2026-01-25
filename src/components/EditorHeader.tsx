@@ -1,12 +1,16 @@
 import { Code2 } from 'lucide-react';
 import { ReactNode } from 'react';
+import { SettingsPanel } from './SettingsPanel';
+import { EditorSettings } from '@/hooks/useEditorSettings';
 
 interface EditorHeaderProps {
   fileName?: string;
   children?: ReactNode;
+  settings?: EditorSettings;
+  onSettingsChange?: (settings: EditorSettings) => void;
 }
 
-export const EditorHeader = ({ fileName = 'untitled', children }: EditorHeaderProps) => {
+export const EditorHeader = ({ fileName = 'untitled', children, settings, onSettingsChange }: EditorHeaderProps) => {
   return (
     <header className="flex items-center justify-between px-4 py-3 bg-card border-b border-border">
       <div className="flex items-center gap-3">
@@ -19,6 +23,9 @@ export const EditorHeader = ({ fileName = 'untitled', children }: EditorHeaderPr
           <p className="text-xs text-muted-foreground font-mono">{fileName}</p>
         </div>
       </div>
+      {settings && onSettingsChange && (
+        <SettingsPanel settings={settings} onSettingsChange={onSettingsChange} />
+      )}
     </header>
   );
 };
