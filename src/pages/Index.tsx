@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react';
-import { CodeEditor, Language } from '@/components/CodeEditor';
+import { useState, useCallback, useRef } from 'react';
+import { CodeEditor, Language, CodeEditorRef } from '@/components/CodeEditor';
 import { EditorHeader } from '@/components/EditorHeader';
 import { EditorToolbar } from '@/components/EditorToolbar';
 import { FileTreeView, FileNode, getLanguageFromExtension } from '@/components/FileTreeView';
+import { FileTabs } from '@/components/FileTabs';
+import { SymbolBar } from '@/components/SymbolBar';
 import { useEditorSettings } from '@/hooks/useEditorSettings';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { toast } from 'sonner';
@@ -279,8 +281,13 @@ const Index = () => {
   const [language, setLanguage] = useState<Language>('javascript');
   const [code, setCode] = useState(defaultCode.javascript);
   const [selectedFileId, setSelectedFileId] = useState<string>('main-js');
+  const [openFiles, setOpenFiles] = useState<FileNode[]>(() => {
+    const mainJs = findFileById(initialFiles, 'main-js');
+    return mainJs ? [mainJs] : [];
+  });
   const [showTree, setShowTree] = useState(false);
   const { settings, setSettings } = useEditorSettings();
+  const editorRef = useRef<CodeEditorRef>(null);
 
   const handleLanguageChange = useCallback((lang: Language) => {
     setLanguage(lang);
@@ -292,6 +299,14 @@ const Index = () => {
       // Save current file content before switching
       setFiles(prev => updateFileContent(prev, selectedFileId, code));
       
+      // Add to open files if not already open
+      setOpenFiles(prev => {
+        if (!prev.find(f => f.id === file.id)) {
+          return [...prev, file];
+        }
+        return prev;
+      });
+      
       setSelectedFileId(file.id);
       const lang = file.language || getLanguageFromExtension(file.name);
       if (lang) {
@@ -301,6 +316,25 @@ const Index = () => {
       setShowTree(false); // Close tree on mobile after selection
     }
   }, [selectedFileId, code]);
+
+  const handleCloseFile = useCallback((fileId: string) => {
+    setOpenFiles(prev => {
+      const newOpenFiles = prev.filter(f => f.id !== fileId);
+      
+      // If we're closing the active file, switch to another open file
+      if (fileId === selectedFileId && newOpenFiles.length > 0) {
+        const newActiveFile = newOpenFiles[newOpenFiles.length - 1];
+        setSelectedFileId(newActiveFile.id);
+        const lang = newActiveFile.language || getLanguageFromExtension(newActiveFile.name);
+        if (lang) {
+          setLanguage(lang);
+          setCode(newActiveFile.content || defaultCode[lang] || '');
+        }
+      }
+      
+      return newOpenFiles;
+    });
+  }, [selectedFileId]);
 
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode);
@@ -322,6 +356,10 @@ const Index = () => {
 
   const handleClear = useCallback(() => {
     setCode('');
+  }, []);
+
+  const handleSymbolInsert = useCallback((symbol: string) => {
+    editorRef.current?.insertText(symbol);
   }, []);
 
   const handleDownloadFile = useCallback(async (file: FileNode) => {
@@ -428,6 +466,12 @@ const Index = () => {
             {showTree ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
           </button>
         </EditorHeader>
+        <FileTabs
+          openFiles={openFiles}
+          activeFileId={selectedFileId}
+          onSelectFile={handleFileSelect}
+          onCloseFile={handleCloseFile}
+        />
         <EditorToolbar
           language={language}
           onLanguageChange={handleLanguageChange}
@@ -438,6 +482,7 @@ const Index = () => {
         />
         <div className="flex-1 min-h-0 overflow-hidden">
           <CodeEditor
+            ref={editorRef}
             value={code}
             onChange={handleCodeChange}
             language={language}
@@ -445,6 +490,7 @@ const Index = () => {
             theme={settings.theme}
           />
         </div>
+        <SymbolBar onInsert={handleSymbolInsert} />
       </div>
     </div>
   );
