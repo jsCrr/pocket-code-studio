@@ -1,15 +1,19 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { CodeEditor, Language, CodeEditorRef } from '@/components/CodeEditor';
 import { EditorHeader } from '@/components/EditorHeader';
 import { FileTreeView, FileNode, getLanguageFromExtension } from '@/components/FileTreeView';
 import { FileTabs } from '@/components/FileTabs';
 import { EmptyEditorState } from '@/components/EmptyEditorState';
+import { NewProjectDialog } from '@/components/NewProjectDialog';
+import { RecentProjectsDialog } from '@/components/RecentProjectsDialog';
 import { useEditorSettings } from '@/hooks/useEditorSettings';
+import { useFileSystem, Project } from '@/hooks/useFileSystem';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { toast } from 'sonner';
 
 const defaultCode: Record<Language, string> = {
-  javascript: `// Welcome to Mobile Code Editor
+  javascript: `// Welcome to Pocket Code Studio
 function greet(name) {
   return \`Hello, \${name}! 👋\`;
 }
@@ -49,11 +53,11 @@ print(fibonacci(10))`,
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobile Code</title>
+  <title>Pocket Code Studio</title>
 </head>
 <body>
   <h1>Hello, World!</h1>
-  <p>Welcome to the mobile code editor.</p>
+  <p>Welcome to Pocket Code Studio.</p>
 </body>
 </html>`,
   css: `/* Modern CSS Example */
@@ -73,7 +77,7 @@ print(fibonacci(10))`,
   backdrop-filter: blur(10px);
 }`,
   json: `{
-  "name": "mobile-code-editor",
+  "name": "pocket-code-studio",
   "version": "1.0.0",
   "description": "A beautiful code editor for mobile devices",
   "features": [
@@ -82,9 +86,9 @@ print(fibonacci(10))`,
     "Touch-friendly UI",
     "Dark theme"
   ],
-  "author": "Lovable"
+  "author": "Pocket Code Studio"
 }`,
-  markdown: `# Mobile Code Editor
+  markdown: `# Pocket Code Studio
 
 A **beautiful** code editor designed for mobile devices.
 
@@ -101,7 +105,7 @@ A **beautiful** code editor designed for mobile devices.
 console.log('Hello, World!');
 \`\`\`
 
-> Built with love using Lovable`,
+> Built with love`,
   sql: `-- SQL Example
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
@@ -116,7 +120,7 @@ ORDER BY name ASC
 LIMIT 10;`,
   xml: `<?xml version="1.0" encoding="UTF-8"?>
 <root>
-  <application name="Mobile Code Editor">
+  <application name="Pocket Code Studio">
     <version>1.0.0</version>
     <features>
       <feature>Syntax Highlighting</feature>
@@ -199,7 +203,7 @@ print_r($doubled);
 ?>`,
 };
 
-const initialFiles: FileNode[] = [
+const getInitialFiles = (): FileNode[] => [
   {
     id: 'src',
     name: 'src',
@@ -259,39 +263,41 @@ const updateFileContent = (nodes: FileNode[], id: string, content: string): File
   });
 };
 
-const collectAllFiles = (nodes: FileNode[], path: string = ''): { path: string; content: string }[] => {
-  const result: { path: string; content: string }[] = [];
+const Editor = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const mode = location.state?.mode as 'new' | 'open' | undefined;
   
-  for (const node of nodes) {
-    const currentPath = path ? `${path}/${node.name}` : node.name;
-    if (node.type === 'file' && node.content !== undefined) {
-      result.push({ path: currentPath, content: node.content });
-    }
-    if (node.children) {
-      result.push(...collectAllFiles(node.children, currentPath));
-    }
-  }
-  
-  return result;
-};
-
-const Index = () => {
-  const [files, setFiles] = useState<FileNode[]>(initialFiles);
+  const [files, setFiles] = useState<FileNode[]>(getInitialFiles());
   const [language, setLanguage] = useState<Language>('javascript');
   const [code, setCode] = useState(defaultCode.javascript);
   const [selectedFileId, setSelectedFileId] = useState<string>('main-js');
   const [openFiles, setOpenFiles] = useState<FileNode[]>(() => {
-    const mainJs = findFileById(initialFiles, 'main-js');
+    const mainJs = findFileById(getInitialFiles(), 'main-js');
     return mainJs ? [mainJs] : [];
   });
   const [showTree, setShowTree] = useState(false);
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
+  const [showRecentProjectsDialog, setShowRecentProjectsDialog] = useState(false);
   const { settings, setSettings } = useEditorSettings();
   const editorRef = useRef<CodeEditorRef>(null);
+  const fileSystem = useFileSystem();
 
-  const handleLanguageChange = useCallback((lang: Language) => {
-    setLanguage(lang);
-    setCode(defaultCode[lang]);
-  }, []);
+  // Handle mode from navigation
+  useEffect(() => {
+    if (mode === 'new') {
+      if (fileSystem.isNative()) {
+        setShowNewProjectDialog(true);
+      }
+      // Clear the state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    } else if (mode === 'open') {
+      if (fileSystem.isNative()) {
+        setShowRecentProjectsDialog(true);
+      }
+      window.history.replaceState({}, document.title);
+    }
+  }, [mode, fileSystem]);
 
   const handleFileSelect = useCallback((file: FileNode) => {
     if (file.type === 'file' && file.id) {
@@ -312,7 +318,7 @@ const Index = () => {
         setLanguage(lang);
         setCode(file.content || defaultCode[lang] || '');
       }
-      setShowTree(false); // Close tree on mobile after selection
+      setShowTree(false);
     }
   }, [selectedFileId, code]);
 
@@ -320,10 +326,8 @@ const Index = () => {
     setOpenFiles(prev => {
       const newOpenFiles = prev.filter(f => f.id !== fileId);
       
-      // If we're closing the active file
       if (fileId === selectedFileId) {
         if (newOpenFiles.length > 0) {
-          // Switch to another open file
           const newActiveFile = newOpenFiles[newOpenFiles.length - 1];
           setSelectedFileId(newActiveFile.id);
           const lang = newActiveFile.language || getLanguageFromExtension(newActiveFile.name);
@@ -332,7 +336,6 @@ const Index = () => {
             setCode(newActiveFile.content || defaultCode[lang] || '');
           }
         } else {
-          // No more files open - clear the selection
           setSelectedFileId('');
           setCode('');
         }
@@ -344,28 +347,11 @@ const Index = () => {
 
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode);
-    // Update file content in state
     setFiles(prev => updateFileContent(prev, selectedFileId, newCode));
   }, [selectedFileId]);
 
   const handleFilesChange = useCallback((newFiles: FileNode[]) => {
     setFiles(newFiles);
-  }, []);
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  }, [code]);
-
-  const handleClear = useCallback(() => {
-    setCode('');
-  }, []);
-
-  const handleSymbolInsert = useCallback((symbol: string) => {
-    editorRef.current?.insertText(symbol);
   }, []);
 
   const handleDownloadFile = useCallback(async (file: FileNode) => {
@@ -427,6 +413,28 @@ const Index = () => {
     URL.revokeObjectURL(url);
     toast.success('Project downloaded as ZIP');
   }, [files]);
+
+  const handleCreateProject = async (projectName: string) => {
+    const result = await fileSystem.createProject(projectName);
+    if (result) {
+      setFiles(result.files);
+      setOpenFiles([]);
+      setSelectedFileId('');
+      setCode('');
+    }
+    setShowNewProjectDialog(false);
+  };
+
+  const handleOpenProject = async (project: Project) => {
+    const projectFiles = await fileSystem.openProject(project.path);
+    if (projectFiles) {
+      setFiles(projectFiles);
+      setOpenFiles([]);
+      setSelectedFileId('');
+      setCode('');
+    }
+    setShowRecentProjectsDialog(false);
+  };
 
   const getFileName = () => {
     const file = findFileById(files, selectedFileId);
@@ -497,8 +505,22 @@ const Index = () => {
           <EmptyEditorState />
         )}
       </div>
+
+      {/* Dialogs */}
+      <NewProjectDialog
+        open={showNewProjectDialog}
+        onOpenChange={setShowNewProjectDialog}
+        onCreateProject={handleCreateProject}
+        isLoading={fileSystem.isLoading}
+      />
+      <RecentProjectsDialog
+        open={showRecentProjectsDialog}
+        onOpenChange={setShowRecentProjectsDialog}
+        projects={fileSystem.getSavedProjects()}
+        onSelectProject={handleOpenProject}
+      />
     </div>
   );
 };
 
-export default Index;
+export default Editor;

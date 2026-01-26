@@ -19,7 +19,7 @@ export const EditorHeader = ({ fileName = 'untitled', children, settings, onSett
           <Code2 className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-sm font-semibold tracking-tight">Mobile Code</h1>
+          <h1 className="text-sm font-semibold tracking-tight">Pocket Code Studio</h1>
           <p className="text-xs text-muted-foreground font-mono">{fileName}</p>
         </div>
       </div>
