@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">pocket-code-studio</string>
+    <string name="title_activity_main">pocket-code-studio</string>
+    <string name="package_name">com.pocketcodestudio.ghoxstmods</string>
+    <string name="custom_url_scheme">com.pocketcodestudio.ghoxstmods</string>
+</resources>
