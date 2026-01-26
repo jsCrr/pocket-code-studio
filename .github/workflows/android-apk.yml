@@ -32,7 +32,7 @@ jobs:
           java-version: "17"
 
       - name: Sync Capacitor Android
-        run: npx cap sync android
+        run: ./node_modules/.bin/cap sync android
 
       - name: Build APK (Debug)
         working-directory: android
