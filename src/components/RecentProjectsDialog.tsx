@@ -6,15 +6,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { FolderOpen, Clock, ChevronRight } from 'lucide-react';
+import { FolderOpen, Clock, ChevronRight, FolderSearch } from 'lucide-react';
 import { Project } from '@/hooks/useFileSystem';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 interface RecentProjectsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projects: Project[];
   onSelectProject: (project: Project) => void;
+  onBrowseFolder?: () => void;
 }
 
 export const RecentProjectsDialog = ({
@@ -22,6 +24,7 @@ export const RecentProjectsDialog = ({
   onOpenChange,
   projects,
   onSelectProject,
+  onBrowseFolder,
 }: RecentProjectsDialogProps) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -45,7 +48,29 @@ export const RecentProjectsDialog = ({
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[300px] pr-4">
+        {/* Browse folder button */}
+        {onBrowseFolder && (
+          <>
+            <Button 
+              onClick={onBrowseFolder}
+              className="w-full gap-2"
+              variant="outline"
+            >
+              <FolderSearch className="w-5 h-5" />
+              Browse for Folder...
+            </Button>
+            <Separator className="my-2" />
+          </>
+        )}
+        
+        {/* Recent projects label */}
+        {projects.length > 0 && (
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+            Recent Projects
+          </p>
+        )}
+        
+        <ScrollArea className="max-h-[250px] pr-4">
           {projects.length > 0 ? (
             <div className="flex flex-col gap-2">
               {projects.map((project) => (
@@ -75,7 +100,7 @@ export const RecentProjectsDialog = ({
                 No recent projects found.
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Create a new project to get started.
+                Browse for a folder or create a new project.
               </p>
             </div>
           )}
