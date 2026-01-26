@@ -268,36 +268,37 @@ const Editor = () => {
   const navigate = useNavigate();
   const mode = location.state?.mode as 'new' | 'open' | undefined;
   
-  const [files, setFiles] = useState<FileNode[]>(getInitialFiles());
+  const [files, setFiles] = useState<FileNode[]>([]);
   const [language, setLanguage] = useState<Language>('javascript');
-  const [code, setCode] = useState(defaultCode.javascript);
-  const [selectedFileId, setSelectedFileId] = useState<string>('main-js');
-  const [openFiles, setOpenFiles] = useState<FileNode[]>(() => {
-    const mainJs = findFileById(getInitialFiles(), 'main-js');
-    return mainJs ? [mainJs] : [];
-  });
+  const [code, setCode] = useState('');
+  const [selectedFileId, setSelectedFileId] = useState<string>('');
+  const [openFiles, setOpenFiles] = useState<FileNode[]>([]);
   const [showTree, setShowTree] = useState(false);
-  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
-  const [showRecentProjectsDialog, setShowRecentProjectsDialog] = useState(false);
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(mode === 'new');
+  const [showRecentProjectsDialog, setShowRecentProjectsDialog] = useState(mode === 'open');
   const { settings, setSettings } = useEditorSettings();
   const editorRef = useRef<CodeEditorRef>(null);
   const fileSystem = useFileSystem();
 
-  // Handle mode from navigation
+  // Clear the navigation state on mount
   useEffect(() => {
-    if (mode === 'new') {
-      if (fileSystem.isNative()) {
-        setShowNewProjectDialog(true);
-      }
-      // Clear the state to prevent re-triggering
-      window.history.replaceState({}, document.title);
-    } else if (mode === 'open') {
-      if (fileSystem.isNative()) {
-        setShowRecentProjectsDialog(true);
-      }
-      window.history.replaceState({}, document.title);
+    window.history.replaceState({}, document.title);
+  }, []);
+
+  // Handle dialog close - navigate back to home
+  const handleNewProjectDialogClose = (open: boolean) => {
+    setShowNewProjectDialog(open);
+    if (!open && files.length === 0) {
+      navigate('/');
     }
-  }, [mode, fileSystem]);
+  };
+
+  const handleRecentProjectsDialogClose = (open: boolean) => {
+    setShowRecentProjectsDialog(open);
+    if (!open && files.length === 0) {
+      navigate('/');
+    }
+  };
 
   const handleFileSelect = useCallback((file: FileNode) => {
     if (file.type === 'file' && file.id) {
@@ -436,6 +437,12 @@ const Editor = () => {
     setShowRecentProjectsDialog(false);
   };
 
+  const handleBrowseFolder = async () => {
+    // For now, show a toast explaining that SAF integration needs a native plugin
+    // In production, this would use a SAF plugin like @nicola-nicola/capacitor-saf
+    toast.info('Folder browsing requires the app to be running on Android with SAF plugin installed.');
+  };
+
   const getFileName = () => {
     const file = findFileById(files, selectedFileId);
     return file?.name || 'untitled';
@@ -509,15 +516,16 @@ const Editor = () => {
       {/* Dialogs */}
       <NewProjectDialog
         open={showNewProjectDialog}
-        onOpenChange={setShowNewProjectDialog}
+        onOpenChange={handleNewProjectDialogClose}
         onCreateProject={handleCreateProject}
         isLoading={fileSystem.isLoading}
       />
       <RecentProjectsDialog
         open={showRecentProjectsDialog}
-        onOpenChange={setShowRecentProjectsDialog}
+        onOpenChange={handleRecentProjectsDialogClose}
         projects={fileSystem.getSavedProjects()}
         onSelectProject={handleOpenProject}
+        onBrowseFolder={handleBrowseFolder}
       />
     </div>
   );
