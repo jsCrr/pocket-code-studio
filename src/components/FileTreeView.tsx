@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, FileText, FileJson, FolderPlus, FilePlus, Download, Trash2, X, Check, MoreHorizontal, Pencil } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, FileText, FileJson, FolderPlus, FilePlus, Download, Trash2, X, Check, MoreHorizontal, Pencil, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Language } from './CodeEditor';
 import { toast } from 'sonner';
@@ -29,6 +29,7 @@ interface FileTreeViewProps {
   onDownloadFile: (file: FileNode) => void;
   onDownloadProject: () => void;
   onRenameProject?: (newName: string) => void;
+  onOpenSearch?: () => void;
 }
 
 const getFileIcon = (name: string, language?: string) => {
@@ -329,7 +330,7 @@ const NewItemInput = ({ type, onConfirm, onCancel }: NewItemInputProps) => {
   );
 };
 
-export const FileTreeView = ({ files, projectName, selectedFileId, onFileSelect, onFilesChange, onDownloadFile, onDownloadProject, onRenameProject }: FileTreeViewProps) => {
+export const FileTreeView = ({ files, projectName, selectedFileId, onFileSelect, onFilesChange, onDownloadFile, onDownloadProject, onRenameProject, onOpenSearch }: FileTreeViewProps) => {
   const [newItem, setNewItem] = useState<{ parentId: string | null; type: 'file' | 'folder' } | null>(null);
   const [isRenamingProject, setIsRenamingProject] = useState(false);
   const [projectNameValue, setProjectNameValue] = useState(projectName || '');
@@ -482,6 +483,13 @@ export const FileTreeView = ({ files, projectName, selectedFileId, onFileSelect,
             Explorer
           </h3>
           <div className="flex items-center gap-1">
+            <button
+              onClick={onOpenSearch}
+              className="p-1 hover:bg-secondary rounded"
+              title="Search Files"
+            >
+              <Search className="w-4 h-4 text-muted-foreground" />
+            </button>
             <button
               onClick={() => handleAddFile(null, 'file')}
               className="p-1 hover:bg-secondary rounded"
