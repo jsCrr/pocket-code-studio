@@ -26,6 +26,22 @@ console.log(greet('World'));
 const numbers = [1, 2, 3, 4, 5];
 const doubled = numbers.map(n => n * 2);
 console.log('Doubled:', doubled);`,
+  mlg: `// MinhaLinguagem Example
+public void main() {
+  int count = 10;
+  string message = "Hello World";
+  
+  if (count > 5) {
+    // This is a comment
+    return true;
+  }
+  
+  /* Multi-line
+     comment here */
+  for (int i = 0; i < count; i = i + 1) {
+    float value = 3.14;
+  }
+}`,
   typescript: `// TypeScript Example
 interface User {
   name: string;
