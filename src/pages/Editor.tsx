@@ -7,6 +7,7 @@ import { FileTabs } from '@/components/FileTabs';
 import { EmptyEditorState } from '@/components/EmptyEditorState';
 import { NewProjectDialog } from '@/components/NewProjectDialog';
 import { RecentProjectsDialog } from '@/components/RecentProjectsDialog';
+import { FileSearch } from '@/components/FileSearch';
 import { useEditorSettings } from '@/hooks/useEditorSettings';
 import { useFileSystem, Project } from '@/hooks/useFileSystem';
 import { ProjectTemplate, convertTemplateToFiles } from '@/data/projectTemplates';
@@ -278,9 +279,17 @@ const Editor = () => {
   const [showTree, setShowTree] = useState(false);
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(mode === 'new');
   const [showRecentProjectsDialog, setShowRecentProjectsDialog] = useState(mode === 'open');
+  const [showFileSearch, setShowFileSearch] = useState(false);
   const { settings, setSettings } = useEditorSettings();
   const editorRef = useRef<CodeEditorRef>(null);
   const fileSystem = useFileSystem();
+
+  // Redirect to home if no mode is set (direct access to /editor)
+  useEffect(() => {
+    if (!mode && files.length === 0) {
+      navigate('/');
+    }
+  }, [mode, files.length, navigate]);
 
   // Clear the navigation state on mount
   useEffect(() => {
@@ -487,6 +496,7 @@ const Editor = () => {
           onDownloadFile={handleDownloadFile}
           onDownloadProject={handleDownloadProject}
           onRenameProject={handleRenameProject}
+          onOpenSearch={() => setShowFileSearch(true)}
         />
       </div>
       
@@ -549,6 +559,15 @@ const Editor = () => {
         onSelectProject={handleOpenProject}
         onBrowseFolder={handleBrowseFolder}
       />
+
+      {/* File Search Modal */}
+      {showFileSearch && (
+        <FileSearch
+          files={files}
+          onFileSelect={handleFileSelect}
+          onClose={() => setShowFileSearch(false)}
+        />
+      )}
     </div>
   );
 };
