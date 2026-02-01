@@ -437,6 +437,16 @@ const Editor = () => {
 
   const handleCreateProject = async (name: string, template?: ProjectTemplate) => {
     setProjectName(name);
+    
+    // Save to recent projects
+    const projectPath = `PocketCodeStudio/${name}`;
+    fileSystem.saveProjectToRecent({
+      id: Math.random().toString(36).substring(2, 9),
+      name,
+      path: projectPath,
+      lastOpened: new Date().toISOString()
+    });
+    
     if (template) {
       // Use template files
       const templateFiles = convertTemplateToFiles(template);
