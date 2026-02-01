@@ -133,10 +133,10 @@ export const NewProjectDialog = ({
                           viewMode === 'grid' ? "w-4 h-4" : "w-5 h-5"
                         )} />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <div className="flex items-center gap-2">
                           <p className={cn(
-                            "font-medium truncate",
+                            "font-medium truncate flex-1 min-w-0",
                             viewMode === 'grid' ? "text-xs" : "text-sm"
                           )}>{template.name}</p>
                           {selectedTemplate?.id === template.id && (
@@ -148,11 +148,11 @@ export const NewProjectDialog = ({
                             {template.description}
                           </p>
                         )}
-                        <div className="flex flex-wrap gap-1 mt-1.5">
+                        <div className="flex flex-wrap gap-1 mt-1.5 overflow-hidden">
                           {template.tags.slice(0, viewMode === 'grid' ? 2 : 3).map((tag) => (
                             <span
                               key={tag}
-                              className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-muted-foreground"
+                              className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-muted-foreground truncate max-w-full"
                             >
                               {tag}
                             </span>
