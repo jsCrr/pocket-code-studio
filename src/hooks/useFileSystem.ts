@@ -61,7 +61,23 @@ export const useFileSystem = () => {
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(updated));
   }, [getSavedProjects]);
 
-  // Create a new project folder
+  // Delete project from recent list
+  const deleteProjectFromRecent = useCallback((projectPath: string) => {
+    const projects = getSavedProjects();
+    const updated = projects.filter(p => p.path !== projectPath);
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(updated));
+  }, [getSavedProjects]);
+
+  // Rename project in recent list
+  const renameProjectInRecent = useCallback((projectPath: string, newName: string) => {
+    const projects = getSavedProjects();
+    const updated = projects.map(p => 
+      p.path === projectPath ? { ...p, name: newName } : p
+    );
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(updated));
+  }, [getSavedProjects]);
+
+  // Create a new project folder (empty - no default files)
   const createProject = useCallback(async (projectName: string): Promise<{ path: string; files: FileNode[] } | null> => {
     setIsLoading(true);
     try {
@@ -74,39 +90,6 @@ export const useFileSystem = () => {
         recursive: true
       });
 
-      // Create default folders
-      await Filesystem.mkdir({
-        path: `${projectPath}/src`,
-        directory: Directory.Documents,
-        recursive: true
-      });
-
-      // Create a default main.js file
-      const defaultContent = `// Welcome to Pocket Code Studio
-// Project: ${projectName}
-
-function main() {
-  console.log('Hello, World!');
-}
-
-main();
-`;
-
-      await Filesystem.writeFile({
-        path: `${projectPath}/src/main.js`,
-        data: defaultContent,
-        directory: Directory.Documents,
-        encoding: Encoding.UTF8
-      });
-
-      // Create README.md
-      await Filesystem.writeFile({
-        path: `${projectPath}/README.md`,
-        data: `# ${projectName}\n\nCreated with Pocket Code Studio`,
-        directory: Directory.Documents,
-        encoding: Encoding.UTF8
-      });
-
       setCurrentProjectPath(projectPath);
       localStorage.setItem(CURRENT_PROJECT_KEY, projectPath);
       
@@ -117,17 +100,8 @@ main();
         lastOpened: new Date().toISOString()
       });
 
-      const files: FileNode[] = [
-        {
-          id: 'src',
-          name: 'src',
-          type: 'folder',
-          children: [
-            { id: 'main-js', name: 'main.js', type: 'file', language: 'javascript', content: defaultContent }
-          ]
-        },
-        { id: 'readme-md', name: 'README.md', type: 'file', language: 'markdown', content: `# ${projectName}\n\nCreated with Pocket Code Studio` }
-      ];
+      // Empty project - no default files
+      const files: FileNode[] = [];
 
       toast.success(`Project "${projectName}" created`);
       return { path: projectPath, files };
@@ -327,6 +301,8 @@ main();
     createFile,
     createFolder,
     deleteItem,
+    deleteProjectFromRecent,
+    renameProjectInRecent,
     isNative
   };
 };

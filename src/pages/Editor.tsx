@@ -558,6 +558,8 @@ const Editor = () => {
         projects={fileSystem.getSavedProjects()}
         onSelectProject={handleOpenProject}
         onBrowseFolder={handleBrowseFolder}
+        onDeleteProject={fileSystem.deleteProjectFromRecent}
+        onRenameProject={fileSystem.renameProjectInRecent}
       />
 
       {/* File Search Modal */}
