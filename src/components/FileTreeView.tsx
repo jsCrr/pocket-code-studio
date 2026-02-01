@@ -403,6 +403,33 @@ export const FileTreeView = ({ files, projectName, selectedFileId, onFileSelect,
   const handleConfirmNew = (name: string) => {
     if (!newItem) return;
 
+    // Handle nested folder creation (e.g., "a/b/c/d")
+    if (newItem.type === 'folder' && name.includes('/')) {
+      const parts = name.split('/').filter(p => p.trim());
+      if (parts.length === 0) {
+        setNewItem(null);
+        return;
+      }
+
+      // Create nested folder structure
+      const createNestedFolders = (folderNames: string[]): FileNode => {
+        const [first, ...rest] = folderNames;
+        return {
+          id: generateId(),
+          name: first,
+          type: 'folder',
+          children: rest.length > 0 ? [createNestedFolders(rest)] : [],
+        };
+      };
+
+      const nestedFolder = createNestedFolders(parts);
+      const updatedFiles = addNodeToTree(files, newItem.parentId, nestedFolder);
+      onFilesChange(updatedFiles);
+      setNewItem(null);
+      toast.success(`Folder structure "${parts.join('/')}" created`);
+      return;
+    }
+
     const newNode: FileNode = {
       id: generateId(),
       name,
