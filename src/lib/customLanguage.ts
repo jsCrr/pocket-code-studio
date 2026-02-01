@@ -1,21 +1,5 @@
-import { StreamLanguage, LanguageSupport } from '@codemirror/language';
-import { tags, Tag } from '@lezer/highlight';
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
-
-// Custom tags for our language
-const customTags = {
-  controlKeyword: Tag.define(),
-  typeKeyword: Tag.define(),
-  constantKeyword: Tag.define(),
-  accessKeyword: Tag.define(),
-  functionName: Tag.define(),
-  number: Tag.define(),
-  string: Tag.define(),
-  commentSingle: Tag.define(),
-  commentMulti: Tag.define(),
-  operator: Tag.define(),
-  punctuation: Tag.define(),
-};
+import { StreamLanguage, LanguageSupport, HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
 
 // Exact keywords configuration
 const exactKeywords = {
@@ -43,18 +27,16 @@ const customLanguageParser = StreamLanguage.define({
         if (stream.match('*/')) break;
         stream.next();
       }
-      // Keep consuming until we find */
       if (!stream.match('*/')) {
-        // Mark as comment, will continue on next line
         stream.skipToEnd();
       }
-      return 'commentMulti';
+      return 'blockComment';
     }
 
     // Single-line comments
     if (stream.match('//')) {
       stream.skipToEnd();
-      return 'commentSingle';
+      return 'lineComment';
     }
 
     // Strings
@@ -77,21 +59,21 @@ const customLanguageParser = StreamLanguage.define({
     if (stream.match(/^[a-zA-Z_][a-zA-Z0-9_]*/)) {
       const word = stream.current();
       
-      if (controlSet.has(word)) return 'controlKeyword';
-      if (typesSet.has(word)) return 'typeKeyword';
-      if (constantsSet.has(word)) return 'constantKeyword';
-      if (accessSet.has(word)) return 'accessKeyword';
+      if (controlSet.has(word)) return 'keyword';
+      if (typesSet.has(word)) return 'typeName';
+      if (constantsSet.has(word)) return 'bool';
+      if (accessSet.has(word)) return 'modifier';
       
       // Check if it's a function (followed by parenthesis)
-      if (stream.peek() === '(' || (stream.eatSpace() && stream.peek() === '(')) {
-        return 'functionName';
+      if (stream.peek() === '(') {
+        return 'function(variableName)';
       }
       
-      return 'variable';
+      return 'variableName';
     }
 
     // Operators
-    if (stream.match(/^(==|!=|<=|>=|[+\-*/=<>])/)) {
+    if (stream.match(/^(==|!=|<=|>=|[+\-*\/=<>])/)) {
       return 'operator';
     }
 
@@ -108,36 +90,20 @@ const customLanguageParser = StreamLanguage.define({
 
 // Custom highlight style with the exact colors from the config
 export const customHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword, color: '#569CD6', fontWeight: 'bold' }, // control keywords
-  { tag: tags.typeName, color: '#4EC9B0' }, // types
-  { tag: tags.bool, color: '#569CD6', fontStyle: 'italic' }, // constants
-  { tag: tags.null, color: '#569CD6', fontStyle: 'italic' }, // null
-  { tag: tags.modifier, color: '#C586C0' }, // access modifiers
-  { tag: tags.function(tags.variableName), color: '#DCDCAA' }, // functions
-  { tag: tags.number, color: '#B5CEA8' }, // numbers
-  { tag: tags.string, color: '#CE9178' }, // strings
-  { tag: tags.lineComment, color: '#6A9955', fontStyle: 'italic' }, // single comments
-  { tag: tags.blockComment, color: '#6A9955', fontStyle: 'italic' }, // multi comments
-  { tag: tags.operator, color: '#D4D4D4' }, // operators
-  { tag: tags.punctuation, color: '#D4D4D4' }, // punctuation
-  { tag: tags.variableName, color: '#9CDCFE' }, // variables
+  { tag: tags.keyword, color: '#569CD6', fontWeight: 'bold' },
+  { tag: tags.typeName, color: '#4EC9B0' },
+  { tag: tags.bool, color: '#569CD6', fontStyle: 'italic' },
+  { tag: tags.null, color: '#569CD6', fontStyle: 'italic' },
+  { tag: tags.modifier, color: '#C586C0' },
+  { tag: tags.function(tags.variableName), color: '#DCDCAA' },
+  { tag: tags.number, color: '#B5CEA8' },
+  { tag: tags.string, color: '#CE9178' },
+  { tag: tags.lineComment, color: '#6A9955', fontStyle: 'italic' },
+  { tag: tags.blockComment, color: '#6A9955', fontStyle: 'italic' },
+  { tag: tags.operator, color: '#D4D4D4' },
+  { tag: tags.punctuation, color: '#D4D4D4' },
+  { tag: tags.variableName, color: '#9CDCFE' },
 ]);
-
-// Map our custom token names to standard tags for highlighting
-const tokenToTag: Record<string, keyof typeof tags> = {
-  controlKeyword: 'keyword',
-  typeKeyword: 'typeName',
-  constantKeyword: 'bool',
-  accessKeyword: 'modifier',
-  functionName: 'function',
-  number: 'number',
-  string: 'string',
-  commentSingle: 'lineComment',
-  commentMulti: 'blockComment',
-  operator: 'operator',
-  punctuation: 'punctuation',
-  variable: 'variableName',
-};
 
 // Create the language support
 export function customLanguage() {
