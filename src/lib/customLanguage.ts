@@ -1,5 +1,5 @@
 import { StreamLanguage, LanguageSupport, HighlightStyle, syntaxHighlighting } from '@codemirror/language';
-import { tags } from '@lezer/highlight';
+import { tags, Tag } from '@lezer/highlight';
 
 // Exact keywords configuration
 const exactKeywords = {
@@ -15,8 +15,24 @@ const typesSet = new Set(exactKeywords.types);
 const constantsSet = new Set(exactKeywords.constants);
 const accessSet = new Set(exactKeywords.access);
 
+// Custom tags for MinhaLinguagem
+const mlgTags = {
+  controlKeyword: Tag.define(),
+  typeKeyword: Tag.define(),
+  constantKeyword: Tag.define(),
+  accessKeyword: Tag.define(),
+  functionName: Tag.define(),
+  mlgNumber: Tag.define(),
+  mlgString: Tag.define(),
+  mlgComment: Tag.define(),
+  mlgOperator: Tag.define(),
+  mlgPunctuation: Tag.define(),
+  mlgVariable: Tag.define(),
+};
+
 // Stream parser for the custom language
 const customLanguageParser = StreamLanguage.define({
+  name: 'minhalinguagem',
   token(stream) {
     // Skip whitespace
     if (stream.eatSpace()) return null;
@@ -27,16 +43,13 @@ const customLanguageParser = StreamLanguage.define({
         if (stream.match('*/')) break;
         stream.next();
       }
-      if (!stream.match('*/')) {
-        stream.skipToEnd();
-      }
-      return 'blockComment';
+      return 'mlgComment';
     }
 
     // Single-line comments
     if (stream.match('//')) {
       stream.skipToEnd();
-      return 'lineComment';
+      return 'mlgComment';
     }
 
     // Strings
@@ -47,62 +60,84 @@ const customLanguageParser = StreamLanguage.define({
         if (ch === '"' && !escaped) break;
         escaped = !escaped && ch === '\\';
       }
-      return 'string';
+      return 'mlgString';
     }
 
     // Numbers
     if (stream.match(/^\d+(\.\d+)?/)) {
-      return 'number';
+      return 'mlgNumber';
     }
 
     // Identifiers and keywords
     if (stream.match(/^[a-zA-Z_][a-zA-Z0-9_]*/)) {
       const word = stream.current();
       
-      if (controlSet.has(word)) return 'keyword';
-      if (typesSet.has(word)) return 'typeName';
-      if (constantsSet.has(word)) return 'bool';
-      if (accessSet.has(word)) return 'modifier';
+      if (controlSet.has(word)) return 'controlKeyword';
+      if (typesSet.has(word)) return 'typeKeyword';
+      if (constantsSet.has(word)) return 'constantKeyword';
+      if (accessSet.has(word)) return 'accessKeyword';
       
       // Check if it's a function (followed by parenthesis)
       if (stream.peek() === '(') {
-        return 'function(variableName)';
+        return 'functionName';
       }
       
-      return 'variableName';
+      return 'mlgVariable';
     }
 
     // Operators
     if (stream.match(/^(==|!=|<=|>=|[+\-*\/=<>])/)) {
-      return 'operator';
+      return 'mlgOperator';
     }
 
     // Punctuation
     if (stream.match(/^[{}()\[\];,]/)) {
-      return 'punctuation';
+      return 'mlgPunctuation';
     }
 
     // Default: consume one character
     stream.next();
     return null;
   },
+  tokenTable: {
+    controlKeyword: mlgTags.controlKeyword,
+    typeKeyword: mlgTags.typeKeyword,
+    constantKeyword: mlgTags.constantKeyword,
+    accessKeyword: mlgTags.accessKeyword,
+    functionName: mlgTags.functionName,
+    mlgNumber: mlgTags.mlgNumber,
+    mlgString: mlgTags.mlgString,
+    mlgComment: mlgTags.mlgComment,
+    mlgOperator: mlgTags.mlgOperator,
+    mlgPunctuation: mlgTags.mlgPunctuation,
+    mlgVariable: mlgTags.mlgVariable,
+  },
 });
 
 // Custom highlight style with the exact colors from the config
 export const customHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword, color: '#569CD6', fontWeight: 'bold' },
-  { tag: tags.typeName, color: '#4EC9B0' },
-  { tag: tags.bool, color: '#569CD6', fontStyle: 'italic' },
-  { tag: tags.null, color: '#569CD6', fontStyle: 'italic' },
-  { tag: tags.modifier, color: '#C586C0' },
-  { tag: tags.function(tags.variableName), color: '#DCDCAA' },
-  { tag: tags.number, color: '#B5CEA8' },
-  { tag: tags.string, color: '#CE9178' },
-  { tag: tags.lineComment, color: '#6A9955', fontStyle: 'italic' },
-  { tag: tags.blockComment, color: '#6A9955', fontStyle: 'italic' },
-  { tag: tags.operator, color: '#D4D4D4' },
-  { tag: tags.punctuation, color: '#D4D4D4' },
-  { tag: tags.variableName, color: '#9CDCFE' },
+  // Control keywords: #569CD6, bold
+  { tag: mlgTags.controlKeyword, color: '#569CD6', fontWeight: 'bold' },
+  // Types: #4EC9B0
+  { tag: mlgTags.typeKeyword, color: '#4EC9B0' },
+  // Constants: #569CD6, italic
+  { tag: mlgTags.constantKeyword, color: '#569CD6', fontStyle: 'italic' },
+  // Access modifiers: #C586C0
+  { tag: mlgTags.accessKeyword, color: '#C586C0' },
+  // Functions: #DCDCAA
+  { tag: mlgTags.functionName, color: '#DCDCAA' },
+  // Numbers: #B5CEA8
+  { tag: mlgTags.mlgNumber, color: '#B5CEA8' },
+  // Strings: #CE9178
+  { tag: mlgTags.mlgString, color: '#CE9178' },
+  // Comments: #6A9955, italic
+  { tag: mlgTags.mlgComment, color: '#6A9955', fontStyle: 'italic' },
+  // Operators: #D4D4D4
+  { tag: mlgTags.mlgOperator, color: '#D4D4D4' },
+  // Punctuation: #D4D4D4
+  { tag: mlgTags.mlgPunctuation, color: '#D4D4D4' },
+  // Variables: #9CDCFE
+  { tag: mlgTags.mlgVariable, color: '#9CDCFE' },
 ]);
 
 // Create the language support
