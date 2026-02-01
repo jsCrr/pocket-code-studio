@@ -453,6 +453,10 @@ const Editor = () => {
     setShowRecentProjectsDialog(false);
   };
 
+  const handleRenameProject = (newName: string) => {
+    setProjectName(newName);
+  };
+
   const handleBrowseFolder = async () => {
     // For now, show a toast explaining that SAF integration needs a native plugin
     // In production, this would use a SAF plugin like @nicola-nicola/capacitor-saf
@@ -482,6 +486,7 @@ const Editor = () => {
           onFilesChange={handleFilesChange}
           onDownloadFile={handleDownloadFile}
           onDownloadProject={handleDownloadProject}
+          onRenameProject={handleRenameProject}
         />
       </div>
       

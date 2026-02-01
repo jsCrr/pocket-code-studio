@@ -28,6 +28,7 @@ interface FileTreeViewProps {
   onFilesChange: (files: FileNode[]) => void;
   onDownloadFile: (file: FileNode) => void;
   onDownloadProject: () => void;
+  onRenameProject?: (newName: string) => void;
 }
 
 const getFileIcon = (name: string, language?: string) => {
@@ -328,8 +329,18 @@ const NewItemInput = ({ type, onConfirm, onCancel }: NewItemInputProps) => {
   );
 };
 
-export const FileTreeView = ({ files, projectName, selectedFileId, onFileSelect, onFilesChange, onDownloadFile, onDownloadProject }: FileTreeViewProps) => {
+export const FileTreeView = ({ files, projectName, selectedFileId, onFileSelect, onFilesChange, onDownloadFile, onDownloadProject, onRenameProject }: FileTreeViewProps) => {
   const [newItem, setNewItem] = useState<{ parentId: string | null; type: 'file' | 'folder' } | null>(null);
+  const [isRenamingProject, setIsRenamingProject] = useState(false);
+  const [projectNameValue, setProjectNameValue] = useState(projectName || '');
+
+  const handleProjectRenameSubmit = () => {
+    if (projectNameValue.trim() && projectNameValue !== projectName && onRenameProject) {
+      onRenameProject(projectNameValue.trim());
+      toast.success('Project renamed');
+    }
+    setIsRenamingProject(false);
+  };
 
   const addNodeToTree = useCallback((nodes: FileNode[], parentId: string | null, newNode: FileNode): FileNode[] => {
     if (parentId === null) {
@@ -429,7 +440,42 @@ export const FileTreeView = ({ files, projectName, selectedFileId, onFileSelect,
     <div className="h-full bg-sidebar-background/80 backdrop-blur-xl border-r border-sidebar-border overflow-auto">
       <div className="p-3 border-b border-sidebar-border flex flex-col gap-1">
         {projectName && (
-          <h2 className="text-sm font-semibold text-foreground truncate">{projectName}</h2>
+          isRenamingProject ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={projectNameValue}
+                onChange={(e) => setProjectNameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleProjectRenameSubmit();
+                  if (e.key === 'Escape') {
+                    setProjectNameValue(projectName);
+                    setIsRenamingProject(false);
+                  }
+                }}
+                onBlur={handleProjectRenameSubmit}
+                className="flex-1 bg-secondary/50 text-sm font-semibold px-2 py-0.5 rounded border border-border focus:outline-none focus:border-primary"
+                autoFocus
+              />
+              <button onClick={handleProjectRenameSubmit} className="p-1 hover:bg-secondary rounded">
+                <Check className="w-3.5 h-3.5 text-primary" />
+              </button>
+              <button onClick={() => { setProjectNameValue(projectName); setIsRenamingProject(false); }} className="p-1 hover:bg-secondary rounded">
+                <X className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 group">
+              <h2 className="text-sm font-semibold text-foreground truncate flex-1">{projectName}</h2>
+              <button
+                onClick={() => { setProjectNameValue(projectName); setIsRenamingProject(true); }}
+                className="p-1 hover:bg-secondary rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Rename Project"
+              >
+                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            </div>
+          )
         )}
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
