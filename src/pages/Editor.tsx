@@ -280,9 +280,17 @@ const Editor = () => {
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(mode === 'new');
   const [showRecentProjectsDialog, setShowRecentProjectsDialog] = useState(mode === 'open');
   const [showFileSearch, setShowFileSearch] = useState(false);
+  const [recentProjects, setRecentProjects] = useState<Project[]>([]);
   const { settings, setSettings } = useEditorSettings();
   const editorRef = useRef<CodeEditorRef>(null);
   const fileSystem = useFileSystem();
+
+  // Load recent projects when dialog opens
+  useEffect(() => {
+    if (showRecentProjectsDialog) {
+      setRecentProjects(fileSystem.getSavedProjects());
+    }
+  }, [showRecentProjectsDialog, fileSystem]);
 
   // Redirect to home if no mode is set (direct access to /editor)
   useEffect(() => {
@@ -555,11 +563,17 @@ const Editor = () => {
       <RecentProjectsDialog
         open={showRecentProjectsDialog}
         onOpenChange={handleRecentProjectsDialogClose}
-        projects={fileSystem.getSavedProjects()}
+        projects={recentProjects}
         onSelectProject={handleOpenProject}
         onBrowseFolder={handleBrowseFolder}
-        onDeleteProject={fileSystem.deleteProjectFromRecent}
-        onRenameProject={fileSystem.renameProjectInRecent}
+        onDeleteProject={(path) => {
+          fileSystem.deleteProjectFromRecent(path);
+          setRecentProjects(fileSystem.getSavedProjects());
+        }}
+        onRenameProject={(path, newName) => {
+          fileSystem.renameProjectInRecent(path, newName);
+          setRecentProjects(fileSystem.getSavedProjects());
+        }}
       />
 
       {/* File Search Modal */}
