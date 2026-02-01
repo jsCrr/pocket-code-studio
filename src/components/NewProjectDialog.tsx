@@ -117,11 +117,11 @@ export const NewProjectDialog = ({
                       onClick={() => setSelectedTemplate(template)}
                       disabled={isLoading}
                       className={cn(
-                        "flex items-start gap-3 p-3 rounded-lg border text-left transition-colors",
+                        "flex items-start gap-3 p-3 rounded-lg border text-left transition-colors overflow-hidden",
                         selectedTemplate?.id === template.id
                           ? "border-primary bg-primary/10"
                           : "border-border hover:bg-secondary/50",
-                        viewMode === 'grid' && "flex-col gap-2"
+                        viewMode === 'grid' && "flex-col gap-2 w-full"
                       )}
                     >
                       <div className={cn(
