@@ -295,6 +295,7 @@ export const useFileSystem = () => {
     isLoading,
     currentProjectPath,
     getSavedProjects,
+    saveProjectToRecent,
     createProject,
     openProject,
     saveFile,
