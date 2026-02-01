@@ -83,6 +83,7 @@ const getLanguageFromExtension = (name: string): Language | undefined => {
     'c': 'cpp',
     'rs': 'rust',
     'php': 'php',
+    'mlg': 'mlg',
   };
   return ext ? langMap[ext] : undefined;
 };

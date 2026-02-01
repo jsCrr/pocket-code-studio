@@ -16,6 +16,7 @@ import { cpp } from '@codemirror/lang-cpp';
 import { rust } from '@codemirror/lang-rust';
 import { php } from '@codemirror/lang-php';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { customLanguage, customSyntaxHighlighting } from '@/lib/customLanguage';
 
 export type Language = 
   | 'javascript' 
@@ -30,7 +31,8 @@ export type Language =
   | 'java'
   | 'cpp'
   | 'rust'
-  | 'php';
+  | 'php'
+  | 'mlg';
 
 export type EditorTheme = 'dark' | 'monokai' | 'dracula' | 'nord';
 
@@ -75,10 +77,15 @@ const getLanguageExtension = (lang: Language) => {
       return rust();
     case 'php':
       return php();
+    case 'mlg':
+      return customLanguage();
     default:
       return javascript();
   }
 };
+
+// Check if we should use custom syntax highlighting
+const useCustomHighlighting = (lang: Language) => lang === 'mlg';
 
 const getThemeColors = (theme: EditorTheme) => {
   const themes = {
@@ -162,7 +169,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
         highlightActiveLine(),
         highlightActiveLineGutter(),
         bracketMatching(),
-        syntaxHighlighting(defaultHighlightStyle),
+        useCustomHighlighting(language) ? customSyntaxHighlighting : syntaxHighlighting(defaultHighlightStyle),
         oneDark,
         getLanguageExtension(language),
         keymap.of([...defaultKeymap, indentWithTab]),
@@ -242,7 +249,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
         highlightActiveLine(),
         highlightActiveLineGutter(),
         bracketMatching(),
-        syntaxHighlighting(defaultHighlightStyle),
+        useCustomHighlighting(language) ? customSyntaxHighlighting : syntaxHighlighting(defaultHighlightStyle),
         oneDark,
         getLanguageExtension(language),
         keymap.of([...defaultKeymap, indentWithTab]),
