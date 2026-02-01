@@ -86,25 +86,33 @@ const getThemeColors = (theme: EditorTheme) => {
       bg: '#1a1b26',
       gutterBg: '#16171f',
       activeLine: '#1e1f2b',
-      selection: 'rgba(125, 207, 255, 0.2)',
+      selection: '#3d59a1',
+      cursor: '#c0caf5',
+      foreground: '#c0caf5',
     },
     monokai: {
       bg: '#272822',
       gutterBg: '#1e1f1c',
       activeLine: '#3e3d32',
-      selection: 'rgba(249, 38, 114, 0.2)',
+      selection: '#49483e',
+      cursor: '#f8f8f0',
+      foreground: '#f8f8f2',
     },
     dracula: {
       bg: '#282a36',
       gutterBg: '#21222c',
       activeLine: '#44475a',
-      selection: 'rgba(189, 147, 249, 0.2)',
+      selection: '#44475a',
+      cursor: '#f8f8f2',
+      foreground: '#f8f8f2',
     },
     nord: {
       bg: '#2e3440',
       gutterBg: '#272c36',
       activeLine: '#3b4252',
-      selection: 'rgba(136, 192, 208, 0.2)',
+      selection: '#434c5e',
+      cursor: '#d8dee9',
+      foreground: '#d8dee9',
     },
   };
   return themes[theme];
@@ -168,6 +176,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
           '.cm-content': {
             fontSize: `${fontSize}px`,
             fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+            caretColor: themeColors.cursor,
           },
           '.cm-scroller': {
             overflow: 'auto',
@@ -176,15 +185,26 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
             backgroundColor: themeColors.gutterBg,
             borderRight: '1px solid rgba(255,255,255,0.1)',
             fontSize: `${fontSize}px`,
+            color: 'rgba(255,255,255,0.4)',
+          },
+          '.cm-lineNumbers .cm-gutterElement': {
+            color: 'rgba(255,255,255,0.4)',
           },
           '.cm-activeLine': {
-            backgroundColor: themeColors.activeLine,
+            backgroundColor: `${themeColors.activeLine} !important`,
           },
           '.cm-activeLineGutter': {
-            backgroundColor: themeColors.activeLine,
+            backgroundColor: `${themeColors.activeLine} !important`,
           },
-          '.cm-selectionBackground': {
+          '.cm-cursor': {
+            borderLeftColor: themeColors.cursor,
+            borderLeftWidth: '2px',
+          },
+          '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
             backgroundColor: `${themeColors.selection} !important`,
+          },
+          '.cm-selectionMatch': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
           },
         }),
       ],
@@ -236,6 +256,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
           '.cm-content': {
             fontSize: `${fontSize}px`,
             fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+            caretColor: themeColors.cursor,
           },
           '.cm-scroller': {
             overflow: 'auto',
@@ -244,15 +265,26 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
             backgroundColor: themeColors.gutterBg,
             borderRight: '1px solid rgba(255,255,255,0.1)',
             fontSize: `${fontSize}px`,
+            color: 'rgba(255,255,255,0.4)',
+          },
+          '.cm-lineNumbers .cm-gutterElement': {
+            color: 'rgba(255,255,255,0.4)',
           },
           '.cm-activeLine': {
-            backgroundColor: themeColors.activeLine,
+            backgroundColor: `${themeColors.activeLine} !important`,
           },
           '.cm-activeLineGutter': {
-            backgroundColor: themeColors.activeLine,
+            backgroundColor: `${themeColors.activeLine} !important`,
           },
-          '.cm-selectionBackground': {
+          '.cm-cursor': {
+            borderLeftColor: themeColors.cursor,
+            borderLeftWidth: '2px',
+          },
+          '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
             backgroundColor: `${themeColors.selection} !important`,
+          },
+          '.cm-selectionMatch': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
           },
         }),
       ],
