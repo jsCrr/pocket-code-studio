@@ -9,6 +9,7 @@ import { NewProjectDialog } from '@/components/NewProjectDialog';
 import { RecentProjectsDialog } from '@/components/RecentProjectsDialog';
 import { useEditorSettings } from '@/hooks/useEditorSettings';
 import { useFileSystem, Project } from '@/hooks/useFileSystem';
+import { ProjectTemplate, convertTemplateToFiles } from '@/data/projectTemplates';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -415,13 +416,24 @@ const Editor = () => {
     toast.success('Project downloaded as ZIP');
   }, [files]);
 
-  const handleCreateProject = async (projectName: string) => {
-    const result = await fileSystem.createProject(projectName);
-    if (result) {
-      setFiles(result.files);
+  const handleCreateProject = async (projectName: string, template?: ProjectTemplate) => {
+    if (template) {
+      // Use template files
+      const templateFiles = convertTemplateToFiles(template);
+      setFiles(templateFiles);
       setOpenFiles([]);
       setSelectedFileId('');
       setCode('');
+      toast.success(`Project "${projectName}" created with ${template.name} template`);
+    } else {
+      // Create empty project
+      const result = await fileSystem.createProject(projectName);
+      if (result) {
+        setFiles(result.files);
+        setOpenFiles([]);
+        setSelectedFileId('');
+        setCode('');
+      }
     }
     setShowNewProjectDialog(false);
   };
