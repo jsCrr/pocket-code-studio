@@ -22,6 +22,7 @@ export interface FileNode {
 
 interface FileTreeViewProps {
   files: FileNode[];
+  projectName?: string;
   selectedFileId?: string;
   onFileSelect: (file: FileNode) => void;
   onFilesChange: (files: FileNode[]) => void;
@@ -327,7 +328,7 @@ const NewItemInput = ({ type, onConfirm, onCancel }: NewItemInputProps) => {
   );
 };
 
-export const FileTreeView = ({ files, selectedFileId, onFileSelect, onFilesChange, onDownloadFile, onDownloadProject }: FileTreeViewProps) => {
+export const FileTreeView = ({ files, projectName, selectedFileId, onFileSelect, onFilesChange, onDownloadFile, onDownloadProject }: FileTreeViewProps) => {
   const [newItem, setNewItem] = useState<{ parentId: string | null; type: 'file' | 'folder' } | null>(null);
 
   const addNodeToTree = useCallback((nodes: FileNode[], parentId: string | null, newNode: FileNode): FileNode[] => {
@@ -426,32 +427,37 @@ export const FileTreeView = ({ files, selectedFileId, onFileSelect, onFilesChang
 
   return (
     <div className="h-full bg-sidebar-background/80 backdrop-blur-xl border-r border-sidebar-border overflow-auto">
-      <div className="p-3 border-b border-sidebar-border flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Explorer
-        </h3>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => handleAddFile(null, 'file')}
-            className="p-1 hover:bg-secondary rounded"
-            title="New File"
-          >
-            <FilePlus className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <button
-            onClick={() => handleAddFile(null, 'folder')}
-            className="p-1 hover:bg-secondary rounded"
-            title="New Folder"
-          >
-            <FolderPlus className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <button
-            onClick={onDownloadProject}
-            className="p-1 hover:bg-secondary rounded"
-            title="Download Project"
-          >
-            <Download className="w-4 h-4 text-muted-foreground" />
-          </button>
+      <div className="p-3 border-b border-sidebar-border flex flex-col gap-1">
+        {projectName && (
+          <h2 className="text-sm font-semibold text-foreground truncate">{projectName}</h2>
+        )}
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Explorer
+          </h3>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => handleAddFile(null, 'file')}
+              className="p-1 hover:bg-secondary rounded"
+              title="New File"
+            >
+              <FilePlus className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <button
+              onClick={() => handleAddFile(null, 'folder')}
+              className="p-1 hover:bg-secondary rounded"
+              title="New Folder"
+            >
+              <FolderPlus className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <button
+              onClick={onDownloadProject}
+              className="p-1 hover:bg-secondary rounded"
+              title="Download Project"
+            >
+              <Download className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
         </div>
       </div>
       <div className="p-2">

@@ -270,6 +270,7 @@ const Editor = () => {
   const mode = location.state?.mode as 'new' | 'open' | undefined;
   
   const [files, setFiles] = useState<FileNode[]>([]);
+  const [projectName, setProjectName] = useState<string>('');
   const [language, setLanguage] = useState<Language>('javascript');
   const [code, setCode] = useState('');
   const [selectedFileId, setSelectedFileId] = useState<string>('');
@@ -408,15 +409,17 @@ const Editor = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'project.zip';
+    const zipName = projectName ? `${projectName}.zip` : 'project.zip';
+    a.download = zipName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('Project downloaded as ZIP');
-  }, [files]);
+    toast.success(`Project downloaded as ${zipName}`);
+  }, [files, projectName]);
 
-  const handleCreateProject = async (projectName: string, template?: ProjectTemplate) => {
+  const handleCreateProject = async (name: string, template?: ProjectTemplate) => {
+    setProjectName(name);
     if (template) {
       // Use template files
       const templateFiles = convertTemplateToFiles(template);
@@ -424,10 +427,10 @@ const Editor = () => {
       setOpenFiles([]);
       setSelectedFileId('');
       setCode('');
-      toast.success(`Project "${projectName}" created with ${template.name} template`);
+      toast.success(`Project "${name}" created with ${template.name} template`);
     } else {
       // Create empty project
-      const result = await fileSystem.createProject(projectName);
+      const result = await fileSystem.createProject(name);
       if (result) {
         setFiles(result.files);
         setOpenFiles([]);
@@ -441,6 +444,7 @@ const Editor = () => {
   const handleOpenProject = async (project: Project) => {
     const projectFiles = await fileSystem.openProject(project.path);
     if (projectFiles) {
+      setProjectName(project.name);
       setFiles(projectFiles);
       setOpenFiles([]);
       setSelectedFileId('');
@@ -472,6 +476,7 @@ const Editor = () => {
       >
         <FileTreeView 
           files={files} 
+          projectName={projectName}
           selectedFileId={selectedFileId}
           onFileSelect={handleFileSelect}
           onFilesChange={handleFilesChange}
