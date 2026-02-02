@@ -1,22 +1,7 @@
-import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { EditorState } from '@codemirror/state';
-import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter, keymap } from '@codemirror/view';
-import { defaultKeymap, indentWithTab } from '@codemirror/commands';
-import { syntaxHighlighting, defaultHighlightStyle, bracketMatching } from '@codemirror/language';
-import { javascript } from '@codemirror/lang-javascript';
-import { python } from '@codemirror/lang-python';
-import { html } from '@codemirror/lang-html';
-import { css } from '@codemirror/lang-css';
-import { json } from '@codemirror/lang-json';
-import { markdown } from '@codemirror/lang-markdown';
-import { sql } from '@codemirror/lang-sql';
-import { xml } from '@codemirror/lang-xml';
-import { java } from '@codemirror/lang-java';
-import { cpp } from '@codemirror/lang-cpp';
-import { rust } from '@codemirror/lang-rust';
-import { php } from '@codemirror/lang-php';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { customLanguage, customSyntaxHighlighting } from '@/lib/customLanguage';
+import { useRef, useCallback, useImperativeHandle, forwardRef, useEffect } from 'react';
+import Editor, { OnMount, BeforeMount } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
+import { registerMinhaLinguagem } from '@/lib/customLanguage';
 
 export type Language = 
   | 'javascript' 
@@ -49,80 +34,160 @@ export interface CodeEditorRef {
   insertText: (text: string) => void;
 }
 
-const getLanguageExtension = (lang: Language) => {
+const getMonacoLanguage = (lang: Language): string => {
   switch (lang) {
     case 'javascript':
-      return javascript();
+      return 'javascript';
     case 'typescript':
-      return javascript({ typescript: true });
+      return 'typescript';
     case 'python':
-      return python();
+      return 'python';
     case 'html':
-      return html();
+      return 'html';
     case 'css':
-      return css();
+      return 'css';
     case 'json':
-      return json();
+      return 'json';
     case 'markdown':
-      return markdown();
+      return 'markdown';
     case 'sql':
-      return sql();
+      return 'sql';
     case 'xml':
-      return xml();
+      return 'xml';
     case 'java':
-      return java();
+      return 'java';
     case 'cpp':
-      return cpp();
+      return 'cpp';
     case 'rust':
-      return rust();
+      return 'rust';
     case 'php':
-      return php();
+      return 'php';
     case 'mlg':
-      return customLanguage();
+      return 'minhalinguagem';
     default:
-      return javascript();
+      return 'javascript';
   }
 };
 
-// Check if we should use custom syntax highlighting
-const useCustomHighlighting = (lang: Language) => lang === 'mlg';
+const getMonacoTheme = (theme: EditorTheme): string => {
+  switch (theme) {
+    case 'dark':
+      return 'mlg-dark';
+    case 'monokai':
+      return 'mlg-monokai';
+    case 'dracula':
+      return 'mlg-dracula';
+    case 'nord':
+      return 'mlg-nord';
+    default:
+      return 'mlg-dark';
+  }
+};
 
-const getThemeColors = (theme: EditorTheme) => {
-  const themes = {
-    dark: {
-      bg: '#1a1b26',
-      gutterBg: '#16171f',
-      activeLine: '#1e1f2b',
-      selection: '#3d59a1',
-      cursor: '#c0caf5',
-      foreground: '#c0caf5',
+const defineThemes = (monaco: typeof import('monaco-editor')) => {
+  // Dark theme
+  monaco.editor.defineTheme('mlg-dark', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'keyword.control', foreground: '569CD6', fontStyle: 'bold' },
+      { token: 'keyword.type', foreground: '4EC9B0' },
+      { token: 'keyword.constant', foreground: '569CD6', fontStyle: 'italic' },
+      { token: 'keyword.access', foreground: 'C586C0' },
+      { token: 'identifier.function', foreground: 'DCDCAA' },
+      { token: 'number', foreground: 'B5CEA8' },
+      { token: 'string', foreground: 'CE9178' },
+      { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },
+    ],
+    colors: {
+      'editor.background': '#1a1b26',
+      'editor.foreground': '#c0caf5',
+      'editorLineNumber.foreground': '#666666',
+      'editorLineNumber.activeForeground': '#c0caf5',
+      'editor.lineHighlightBackground': '#1e1f2b',
+      'editor.selectionBackground': '#3d59a1',
+      'editorCursor.foreground': '#c0caf5',
+      'editorGutter.background': '#16171f',
     },
-    monokai: {
-      bg: '#272822',
-      gutterBg: '#1e1f1c',
-      activeLine: '#3e3d32',
-      selection: '#49483e',
-      cursor: '#f8f8f0',
-      foreground: '#f8f8f2',
+  });
+
+  // Monokai theme
+  monaco.editor.defineTheme('mlg-monokai', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'keyword.control', foreground: 'F92672', fontStyle: 'bold' },
+      { token: 'keyword.type', foreground: '66D9EF', fontStyle: 'italic' },
+      { token: 'keyword.constant', foreground: 'AE81FF' },
+      { token: 'keyword.access', foreground: 'F92672' },
+      { token: 'identifier.function', foreground: 'A6E22E' },
+      { token: 'number', foreground: 'AE81FF' },
+      { token: 'string', foreground: 'E6DB74' },
+      { token: 'comment', foreground: '75715E', fontStyle: 'italic' },
+    ],
+    colors: {
+      'editor.background': '#272822',
+      'editor.foreground': '#f8f8f2',
+      'editorLineNumber.foreground': '#90908a',
+      'editorLineNumber.activeForeground': '#f8f8f2',
+      'editor.lineHighlightBackground': '#3e3d32',
+      'editor.selectionBackground': '#49483e',
+      'editorCursor.foreground': '#f8f8f0',
+      'editorGutter.background': '#1e1f1c',
     },
-    dracula: {
-      bg: '#282a36',
-      gutterBg: '#21222c',
-      activeLine: '#44475a',
-      selection: '#44475a',
-      cursor: '#f8f8f2',
-      foreground: '#f8f8f2',
+  });
+
+  // Dracula theme
+  monaco.editor.defineTheme('mlg-dracula', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'keyword.control', foreground: 'FF79C6', fontStyle: 'bold' },
+      { token: 'keyword.type', foreground: '8BE9FD', fontStyle: 'italic' },
+      { token: 'keyword.constant', foreground: 'BD93F9' },
+      { token: 'keyword.access', foreground: 'FF79C6' },
+      { token: 'identifier.function', foreground: '50FA7B' },
+      { token: 'number', foreground: 'BD93F9' },
+      { token: 'string', foreground: 'F1FA8C' },
+      { token: 'comment', foreground: '6272A4', fontStyle: 'italic' },
+    ],
+    colors: {
+      'editor.background': '#282a36',
+      'editor.foreground': '#f8f8f2',
+      'editorLineNumber.foreground': '#6272a4',
+      'editorLineNumber.activeForeground': '#f8f8f2',
+      'editor.lineHighlightBackground': '#44475a',
+      'editor.selectionBackground': '#44475a',
+      'editorCursor.foreground': '#f8f8f2',
+      'editorGutter.background': '#21222c',
     },
-    nord: {
-      bg: '#2e3440',
-      gutterBg: '#272c36',
-      activeLine: '#3b4252',
-      selection: '#434c5e',
-      cursor: '#d8dee9',
-      foreground: '#d8dee9',
+  });
+
+  // Nord theme
+  monaco.editor.defineTheme('mlg-nord', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'keyword.control', foreground: '81A1C1', fontStyle: 'bold' },
+      { token: 'keyword.type', foreground: '8FBCBB' },
+      { token: 'keyword.constant', foreground: 'B48EAD' },
+      { token: 'keyword.access', foreground: '81A1C1' },
+      { token: 'identifier.function', foreground: '88C0D0' },
+      { token: 'number', foreground: 'B48EAD' },
+      { token: 'string', foreground: 'A3BE8C' },
+      { token: 'comment', foreground: '616E88', fontStyle: 'italic' },
+    ],
+    colors: {
+      'editor.background': '#2e3440',
+      'editor.foreground': '#d8dee9',
+      'editorLineNumber.foreground': '#4c566a',
+      'editorLineNumber.activeForeground': '#d8dee9',
+      'editor.lineHighlightBackground': '#3b4252',
+      'editor.selectionBackground': '#434c5e',
+      'editorCursor.foreground': '#d8dee9',
+      'editorGutter.background': '#272c36',
     },
-  };
-  return themes[theme];
+  });
 };
 
 export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({ 
@@ -133,193 +198,84 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(({
   theme = 'dark',
   className = '' 
 }, ref) => {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   useImperativeHandle(ref, () => ({
     insertText: (text: string) => {
-      if (viewRef.current) {
-        const { state } = viewRef.current;
-        const selection = state.selection.main;
-        viewRef.current.dispatch({
-          changes: { from: selection.from, to: selection.to, insert: text },
-          selection: { anchor: selection.from + text.length },
-        });
-        viewRef.current.focus();
+      if (editorRef.current) {
+        const selection = editorRef.current.getSelection();
+        if (selection) {
+          editorRef.current.executeEdits('insert', [{
+            range: selection,
+            text: text,
+            forceMoveMarkers: true,
+          }]);
+          editorRef.current.focus();
+        }
       }
     },
   }));
 
-  const handleChange = useCallback((update: { state: EditorState; docChanged: boolean }) => {
-    if (update.docChanged) {
-      onChange(update.state.doc.toString());
-    }
+  const handleBeforeMount: BeforeMount = (monaco) => {
+    // Register custom language
+    registerMinhaLinguagem(monaco);
+    // Define themes
+    defineThemes(monaco);
+  };
+
+  const handleEditorMount: OnMount = (editor) => {
+    editorRef.current = editor;
+  };
+
+  const handleChange = useCallback((value: string | undefined) => {
+    onChange(value || '');
   }, [onChange]);
 
-  // Initialize editor once
+  // Update editor options when fontSize changes
   useEffect(() => {
-    if (!editorRef.current) return;
-
-    const themeColors = getThemeColors(theme);
-
-    const state = EditorState.create({
-      doc: value,
-      extensions: [
-        lineNumbers(),
-        highlightActiveLine(),
-        highlightActiveLineGutter(),
-        bracketMatching(),
-        useCustomHighlighting(language) ? customSyntaxHighlighting : syntaxHighlighting(defaultHighlightStyle),
-        oneDark,
-        getLanguageExtension(language),
-        keymap.of([...defaultKeymap, indentWithTab]),
-        EditorView.updateListener.of(handleChange),
-        EditorView.theme({
-          '&': {
-            height: '100%',
-            fontSize: `${fontSize}px`,
-            backgroundColor: themeColors.bg,
-          },
-          '.cm-content': {
-            fontSize: `${fontSize}px`,
-            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-            caretColor: themeColors.cursor,
-          },
-          '.cm-scroller': {
-            overflow: 'auto',
-          },
-          '.cm-gutters': {
-            backgroundColor: themeColors.gutterBg,
-            borderRight: '1px solid rgba(255,255,255,0.1)',
-            fontSize: `${fontSize}px`,
-            color: 'rgba(255,255,255,0.4)',
-          },
-          '.cm-lineNumbers .cm-gutterElement': {
-            color: 'rgba(255,255,255,0.4)',
-          },
-          '.cm-activeLine': {
-            backgroundColor: `${themeColors.activeLine} !important`,
-          },
-          '.cm-activeLineGutter': {
-            backgroundColor: `${themeColors.activeLine} !important`,
-          },
-          '.cm-cursor': {
-            borderLeftColor: themeColors.cursor,
-            borderLeftWidth: '2px',
-          },
-          '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-            backgroundColor: `${themeColors.selection} !important`,
-          },
-          '.cm-selectionMatch': {
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          },
-        }),
-      ],
-    });
-
-    const view = new EditorView({
-      state,
-      parent: editorRef.current,
-    });
-
-    viewRef.current = view;
-
-    return () => {
-      if (viewRef.current) {
-        viewRef.current.destroy();
-        viewRef.current = null;
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Update editor when language, fontSize, or theme changes
-  useEffect(() => {
-    if (!viewRef.current || !editorRef.current) return;
-
-    const themeColors = getThemeColors(theme);
-    const currentDoc = viewRef.current.state.doc.toString();
-    
-    viewRef.current.destroy();
-
-    const state = EditorState.create({
-      doc: currentDoc,
-      extensions: [
-        lineNumbers(),
-        highlightActiveLine(),
-        highlightActiveLineGutter(),
-        bracketMatching(),
-        useCustomHighlighting(language) ? customSyntaxHighlighting : syntaxHighlighting(defaultHighlightStyle),
-        oneDark,
-        getLanguageExtension(language),
-        keymap.of([...defaultKeymap, indentWithTab]),
-        EditorView.updateListener.of(handleChange),
-        EditorView.theme({
-          '&': {
-            height: '100%',
-            fontSize: `${fontSize}px`,
-            backgroundColor: themeColors.bg,
-          },
-          '.cm-content': {
-            fontSize: `${fontSize}px`,
-            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-            caretColor: themeColors.cursor,
-          },
-          '.cm-scroller': {
-            overflow: 'auto',
-          },
-          '.cm-gutters': {
-            backgroundColor: themeColors.gutterBg,
-            borderRight: '1px solid rgba(255,255,255,0.1)',
-            fontSize: `${fontSize}px`,
-            color: 'rgba(255,255,255,0.4)',
-          },
-          '.cm-lineNumbers .cm-gutterElement': {
-            color: 'rgba(255,255,255,0.4)',
-          },
-          '.cm-activeLine': {
-            backgroundColor: `${themeColors.activeLine} !important`,
-          },
-          '.cm-activeLineGutter': {
-            backgroundColor: `${themeColors.activeLine} !important`,
-          },
-          '.cm-cursor': {
-            borderLeftColor: themeColors.cursor,
-            borderLeftWidth: '2px',
-          },
-          '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-            backgroundColor: `${themeColors.selection} !important`,
-          },
-          '.cm-selectionMatch': {
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          },
-        }),
-      ],
-    });
-
-    viewRef.current = new EditorView({
-      state,
-      parent: editorRef.current,
-    });
-  }, [language, fontSize, theme, handleChange]);
-
-  // Update content when value prop changes externally
-  useEffect(() => {
-    if (viewRef.current) {
-      const currentValue = viewRef.current.state.doc.toString();
-      if (value !== currentValue) {
-        viewRef.current.dispatch({
-          changes: { from: 0, to: currentValue.length, insert: value },
-        });
-      }
+    if (editorRef.current) {
+      editorRef.current.updateOptions({ fontSize });
     }
-  }, [value]);
+  }, [fontSize]);
 
   return (
-    <div 
-      ref={editorRef} 
-      className={`editor-container h-full ${className}`}
-    />
+    <div className={`editor-container h-full ${className}`}>
+      <Editor
+        height="100%"
+        language={getMonacoLanguage(language)}
+        theme={getMonacoTheme(theme)}
+        value={value}
+        onChange={handleChange}
+        beforeMount={handleBeforeMount}
+        onMount={handleEditorMount}
+        options={{
+          fontSize,
+          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+          lineNumbers: 'on',
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+          tabSize: 2,
+          wordWrap: 'off',
+          folding: true,
+          bracketPairColorization: { enabled: true },
+          renderLineHighlight: 'all',
+          cursorBlinking: 'smooth',
+          cursorSmoothCaretAnimation: 'on',
+          smoothScrolling: true,
+          padding: { top: 12, bottom: 12 },
+          lineHeight: 1.6 * fontSize,
+          overviewRulerBorder: false,
+          hideCursorInOverviewRuler: true,
+          scrollbar: {
+            vertical: 'auto',
+            horizontal: 'auto',
+            verticalScrollbarSize: 10,
+            horizontalScrollbarSize: 10,
+          },
+        }}
+      />
+    </div>
   );
 });
 
