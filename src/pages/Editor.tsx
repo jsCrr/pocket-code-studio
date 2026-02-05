@@ -8,10 +8,12 @@ import { EmptyEditorState } from '@/components/EmptyEditorState';
 import { NewProjectDialog } from '@/components/NewProjectDialog';
 import { RecentProjectsDialog } from '@/components/RecentProjectsDialog';
 import { FileSearch } from '@/components/FileSearch';
+import { HtmlPreview } from '@/components/HtmlPreview';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { useEditorSettings } from '@/hooks/useEditorSettings';
 import { useFileSystem, Project } from '@/hooks/useFileSystem';
 import { ProjectTemplate, convertTemplateToFiles } from '@/data/projectTemplates';
-import { PanelLeft, PanelLeftClose } from 'lucide-react';
+import { PanelLeft, PanelLeftClose, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 const defaultCode: Record<Language, string> = {
@@ -297,6 +299,7 @@ const Editor = () => {
   const [showRecentProjectsDialog, setShowRecentProjectsDialog] = useState(mode === 'open');
   const [showFileSearch, setShowFileSearch] = useState(false);
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
+  const [showPreview, setShowPreview] = useState(true);
   const { settings, setSettings } = useEditorSettings();
   const editorRef = useRef<CodeEditorRef>(null);
   const fileSystem = useFileSystem();
@@ -511,6 +514,9 @@ const Editor = () => {
     return file?.name || 'untitled';
   };
 
+  const isHtmlFile = language === 'html';
+  const showHtmlPreview = isHtmlFile && showPreview && openFiles.length > 0;
+
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden">
       {/* File Tree - Sidebar */}
@@ -556,6 +562,16 @@ const Editor = () => {
           >
             {showTree ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
           </button>
+          {isHtmlFile && (
+            <button
+              onClick={() => setShowPreview(!showPreview)}
+              className="toolbar-btn p-2 mr-2"
+              aria-label="Toggle HTML preview"
+              title={showPreview ? "Hide preview" : "Show preview"}
+            >
+              {showPreview ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          )}
         </EditorHeader>
         <FileTabs
           openFiles={openFiles}
@@ -565,14 +581,33 @@ const Editor = () => {
         />
         {openFiles.length > 0 ? (
           <div className="flex-1 min-h-0 overflow-hidden">
-            <CodeEditor
-              ref={editorRef}
-              value={code}
-              onChange={handleCodeChange}
-              language={language}
-              fontSize={settings.fontSize}
-              theme={settings.theme}
-            />
+            {showHtmlPreview ? (
+              <ResizablePanelGroup direction="horizontal">
+                <ResizablePanel defaultSize={50} minSize={30}>
+                  <CodeEditor
+                    ref={editorRef}
+                    value={code}
+                    onChange={handleCodeChange}
+                    language={language}
+                    fontSize={settings.fontSize}
+                    theme={settings.theme}
+                  />
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={50} minSize={20}>
+                  <HtmlPreview html={code} />
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            ) : (
+              <CodeEditor
+                ref={editorRef}
+                value={code}
+                onChange={handleCodeChange}
+                language={language}
+                fontSize={settings.fontSize}
+                theme={settings.theme}
+              />
+            )}
           </div>
         ) : (
           <EmptyEditorState />
