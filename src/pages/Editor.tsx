@@ -9,12 +9,14 @@ import { NewProjectDialog } from '@/components/NewProjectDialog';
 import { RecentProjectsDialog } from '@/components/RecentProjectsDialog';
 import { FileSearch } from '@/components/FileSearch';
 import { HtmlPreview } from '@/components/HtmlPreview';
+import { ConsoleOutput, ConsoleEntry } from '@/components/ConsoleOutput';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { useEditorSettings } from '@/hooks/useEditorSettings';
 import { useFileSystem, Project } from '@/hooks/useFileSystem';
 import { ProjectTemplate, convertTemplateToFiles } from '@/data/projectTemplates';
 import { PanelLeft, PanelLeftClose, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { runCode, isRunnableLanguage } from '@/lib/codeRunner';
 
 const defaultCode: Record<Language, string> = {
   javascript: `// Welcome to Pocket Code Studio
@@ -300,6 +302,10 @@ const Editor = () => {
   const [showFileSearch, setShowFileSearch] = useState(false);
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
   const [showPreview, setShowPreview] = useState(true);
+  const [showConsole, setShowConsole] = useState(false);
+  const [consoleMinimized, setConsoleMinimized] = useState(false);
+  const [consoleEntries, setConsoleEntries] = useState<ConsoleEntry[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
   const { settings, setSettings } = useEditorSettings();
   const editorRef = useRef<CodeEditorRef>(null);
   const fileSystem = useFileSystem();
@@ -516,6 +522,51 @@ const Editor = () => {
 
   const isHtmlFile = language === 'html';
   const showHtmlPreview = isHtmlFile && showPreview && openFiles.length > 0;
+  const isRunnable = isRunnableLanguage(language);
+
+  const handleRunCode = useCallback(async () => {
+    if (!code || isRunning) return;
+    
+    setIsRunning(true);
+    setShowConsole(true);
+    setConsoleMinimized(false);
+    
+    // Add start message
+    const startEntry: ConsoleEntry = {
+      id: crypto.randomUUID(),
+      type: 'info',
+      content: `Running ${language} code...`,
+      timestamp: new Date(),
+    };
+    setConsoleEntries(prev => [...prev, startEntry]);
+    
+    const result = await runCode(code, language, (type, message) => {
+      const entry: ConsoleEntry = {
+        id: crypto.randomUUID(),
+        type,
+        content: message,
+        timestamp: new Date(),
+      };
+      setConsoleEntries(prev => [...prev, entry]);
+    });
+    
+    // Add completion message
+    const endEntry: ConsoleEntry = {
+      id: crypto.randomUUID(),
+      type: result.success ? 'result' : 'error',
+      content: result.success 
+        ? `✓ Completed in ${result.executionTime?.toFixed(2)}ms`
+        : `✗ Execution failed: ${result.error}`,
+      timestamp: new Date(),
+    };
+    setConsoleEntries(prev => [...prev, endEntry]);
+    
+    setIsRunning(false);
+  }, [code, language, isRunning]);
+
+  const handleClearConsole = useCallback(() => {
+    setConsoleEntries([]);
+  }, []);
 
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden">
@@ -554,6 +605,11 @@ const Editor = () => {
           fileName={getFileName()}
           settings={settings}
           onSettingsChange={setSettings}
+          isRunnable={isRunnable}
+          isRunning={isRunning}
+          showConsole={showConsole}
+          onRun={handleRunCode}
+          onToggleConsole={() => setShowConsole(prev => !prev)}
         >
           <button
             onClick={() => setShowTree(!showTree)}
@@ -580,32 +636,44 @@ const Editor = () => {
           onCloseFile={handleCloseFile}
         />
         {openFiles.length > 0 ? (
-          <div className="flex-1 min-h-0 overflow-hidden">
-            {showHtmlPreview ? (
-              <ResizablePanelGroup direction="horizontal">
-                <ResizablePanel defaultSize={50} minSize={30}>
-                  <CodeEditor
-                    ref={editorRef}
-                    value={code}
-                    onChange={handleCodeChange}
-                    language={language}
-                    fontSize={settings.fontSize}
-                    theme={settings.theme}
-                  />
-                </ResizablePanel>
-                <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={50} minSize={20}>
-                  <HtmlPreview html={code} />
-                </ResizablePanel>
-              </ResizablePanelGroup>
-            ) : (
-              <CodeEditor
-                ref={editorRef}
-                value={code}
-                onChange={handleCodeChange}
-                language={language}
-                fontSize={settings.fontSize}
-                theme={settings.theme}
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {showHtmlPreview ? (
+                <ResizablePanelGroup direction="horizontal">
+                  <ResizablePanel defaultSize={50} minSize={30}>
+                    <CodeEditor
+                      ref={editorRef}
+                      value={code}
+                      onChange={handleCodeChange}
+                      language={language}
+                      fontSize={settings.fontSize}
+                      theme={settings.theme}
+                    />
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={50} minSize={20}>
+                    <HtmlPreview html={code} />
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              ) : (
+                <CodeEditor
+                  ref={editorRef}
+                  value={code}
+                  onChange={handleCodeChange}
+                  language={language}
+                  fontSize={settings.fontSize}
+                  theme={settings.theme}
+                />
+              )}
+            </div>
+            {showConsole && (
+              <ConsoleOutput
+                entries={consoleEntries}
+                onClear={handleClearConsole}
+                onClose={() => setShowConsole(false)}
+                isMinimized={consoleMinimized}
+                onToggleMinimize={() => setConsoleMinimized(prev => !prev)}
+                isRunning={isRunning}
               />
             )}
           </div>

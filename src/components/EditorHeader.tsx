@@ -1,4 +1,4 @@
-import { Code2, LogOut } from 'lucide-react';
+import { Code2, LogOut, Play, Terminal, Loader2 } from 'lucide-react';
 import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SettingsPanel } from './SettingsPanel';
@@ -14,9 +14,24 @@ interface EditorHeaderProps {
   children?: ReactNode;
   settings?: EditorSettings;
   onSettingsChange?: (settings: EditorSettings) => void;
+  isRunnable?: boolean;
+  isRunning?: boolean;
+  showConsole?: boolean;
+  onRun?: () => void;
+  onToggleConsole?: () => void;
 }
 
-export const EditorHeader = ({ fileName = 'untitled', children, settings, onSettingsChange }: EditorHeaderProps) => {
+export const EditorHeader = ({ 
+  fileName = 'untitled', 
+  children, 
+  settings, 
+  onSettingsChange,
+  isRunnable = false,
+  isRunning = false,
+  showConsole = false,
+  onRun,
+  onToggleConsole,
+}: EditorHeaderProps) => {
   const navigate = useNavigate();
 
   const handleExit = () => {
@@ -36,6 +51,46 @@ export const EditorHeader = ({ fileName = 'untitled', children, settings, onSett
         </div>
       </div>
       <div className="flex items-center gap-2">
+        {isRunnable && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onRun}
+                disabled={isRunning}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white text-sm font-medium"
+                aria-label="Run code"
+              >
+                {isRunning ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                Run
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Run code (JavaScript, PHP)</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onToggleConsole}
+              className={`p-2 rounded-lg transition-colors ${
+                showConsole 
+                  ? 'bg-primary/20 text-primary' 
+                  : 'hover:bg-secondary/50 text-muted-foreground hover:text-foreground'
+              }`}
+              aria-label="Toggle console"
+            >
+              <Terminal className="w-5 h-5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{showConsole ? 'Hide console' : 'Show console'}</p>
+          </TooltipContent>
+        </Tooltip>
         {settings && onSettingsChange && (
           <SettingsPanel settings={settings} onSettingsChange={onSettingsChange} />
         )}
